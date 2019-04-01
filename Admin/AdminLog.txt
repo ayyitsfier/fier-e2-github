@@ -1,0 +1,281 @@
+@name ServerTool
+@persist Colors:table PrintTo:array
+@persist OptIn:table Print:number
+
+runOnConnect(1)
+runOnDisconnect(1)
+runOnDeath(1)
+runOnChat(1)
+runOnFile(1)
+
+if(first())
+{
+    
+    AntiSteal = 1
+    Print = 0
+    
+    if(AntiSteal==1)
+    {
+        entity():propNotSolid(1)
+    }
+    
+    OptIn = table()
+    
+    timer("mutants", 900)
+    
+    Colors = table()
+    Colors["Tag", vector4] = vec4(0,255,255,255)
+    Colors["Other", vector4] = vec4(215,215,215,255)
+    Colors["Player", vector4] = vec4(255,0,255,255)
+    Colors["SteamID", vector4] = vec4(255,255,0,255)
+    
+    ######
+    ######
+    ######
+    
+    function saveList()
+    {
+        if(fileCanWrite())
+        {
+            fileWrite("filewhitelist/printlist.txt", jsonEncode(OptIn, 1))
+        }
+    }
+    
+    function loadList()
+    {
+        if(fileCanLoad())
+        {
+            fileLoad("filewhitelist/printlist.txt")
+        }
+    }
+    
+    function number entity:userAllow()
+    {
+        if(This:isPlayer())
+        {
+            if(OptIn:exists(This:steamID()))
+            {
+                if(OptIn[This:steamID(), table]["access", number]==1)
+                {
+                    return 1
+                }
+            }
+            else
+            {
+                return 0
+            }
+        }
+    }
+    
+    function entity:addUser()
+    {
+        if(!This:userAllow())
+        {
+            OptIn[This:steamID(), table] = table()
+            OptIn[This:steamID(), table]["access", number] = 1
+            OptIn[This:steamID(), table]["rpname", string] = This:name()
+            timer("saveList",250)
+        }
+    }
+    
+    function entity:remUser()
+    {
+        if(This:userAllow())
+        {
+            OptIn:removeTable(This:steamID())
+            timer("saveList",250)
+        }
+    }
+    
+    ######
+    ######
+    ######
+    
+    function entity:connectPrint(Connected:entity, CDC:number)
+    {
+        local Name = Connected:name()
+        local SteamID = Connected:steamID()
+        
+        if(CDC==0)
+        {
+            This:sendMessageColor(Colors["Tag", vector4], "[Server] ", Colors["Player", vector4], Name, Colors["SteamID", vector4], " - "+SteamID+" ", Colors["Other", vector4], "has joined the server." )
+        }
+        elseif(CDC==1)
+        {
+            This:sendMessageColor(Colors["Tag", vector4], "[Server] ", Colors["Player", vector4], Name, Colors["SteamID", vector4], " - "+SteamID+" ", Colors["Other", vector4], "has left the server." )
+        }
+    }
+    
+    function entity:propKill(Victim:entity, Killer:entity, Prop:entity)
+    {
+        local KName = Killer:name()
+        local VName = Victim:name()
+        local KSID = Killer:steamID()
+    
+        This:sendMessageColor(Colors["Tag", vector4], "[Server] ", Colors["Player", vector4], VName, Colors["Other", vector4], " was killed by ", Colors["Player", vector4], KName, Colors["SteamID", vector4], " - "+KSID+" ", Colors["Other", vector4], "using prop with model of: "+Prop:model())
+    }
+    
+    function entity:plyDied(Victim:entity, Killer:entity, Weapon:string)
+    {
+        local KName = Killer:name()
+        local VName = Victim:name()
+        local KSID = Killer:steamID()
+    
+        This:sendMessageColor(Colors["Tag", vector4], "[Server] ", Colors["Player", vector4], VName, Colors["Other", vector4], " was killed by ", Colors["Player", vector4], KName, Colors["SteamID", vector4], " - "+KSID+" ", Colors["Other", vector4], "using "+Weapon)
+    }
+    
+    function entity:mutantTime(DayNight:number)
+    {
+        if(DayNight==0)
+        {
+            This:sendMessageColor(Colors["Tag", vector4], "[Server] ", Colors["Other", vector4], "Lake mutants, it is daytime! You cannot explore the land, you will burn if you try.")
+        }
+        elseif(DayNight==1)
+        {
+            This:sendMessageColor(Colors["Tag", vector4], "[Server] ", Colors["Other", vector4], "Lake mutants, it is nighttime! You can explore land without burning, but the locals might hate you.")
+        }  
+    }
+    
+    if(Print==1)
+    {
+        foreach(I, R:entity = players())
+        {
+            R:sendMessage("You can receive joins/disconnects by typing !jprint")
+            R:sendMessage("And can stop receiving them with !lprint (is an L, not I)")
+        }
+    }
+    
+    loadList()
+
+}
+
+if(deathClk())
+{
+    if(lastDeathInflictor():type()=="prop_physics")
+    {
+            
+        if(lastDeathInflictor():owner()!=lastDeath())
+        {
+        
+            foreach(I, R:entity = players())
+            {
+                if(R:userAllow())
+                {
+                    R:propKill(lastDeath(), lastDeathInflictor():owner(), lastDeathInflictor())   
+                }
+            }
+        }
+    }
+    elseif(lastDeathAttacker():isPlayer())
+    {
+        foreach(I, R:entity = players())
+        {
+            if(R:userAllow())
+            {
+                R:plyDied(lastDeath(), lastDeathAttacker(), lastDeathInflictor():weapon():type())
+            }
+        }
+    }
+}
+
+if(connectClk())
+{
+    foreach(I, R:entity = players())
+    {
+        if(R:userAllow())
+        {
+            R:connectPrint(lastConnectedPlayer(), 0)
+        }
+    }
+    
+    lastConnectedPlayer():sendMessage("You can receive joins/disconnects by typing !jprint")
+    lastConnectedPlayer():sendMessage("And can stop receiving them with !lprint (is an L, not I)")
+    lastConnectedPlayer():sendMessage("By default you are not receiving the messages.")
+}
+
+if(disconnectClk())
+{
+    foreach(I, R:entity = players())
+    {
+        if(R:userAllow())
+        {
+            R:connectPrint(lastDisconnectedPlayer(), 1)
+        }
+    }
+}
+
+if(clk("mutants"))
+{
+    if(changed(isDayNightDaytime())&&isDayNightDaytime())
+    {
+        foreach(I, R:entity = players())
+        {
+            if(R:team():teamName()=="Lake Mutant"|R:team():teamName()=="Lake Mutant Alpha")
+            {
+                R:mutantTime(0)
+            }  
+        }
+    }
+    elseif(changed(isDayNightDaytime())&&!isDayNightDaytime())
+    {
+        foreach(I, R:entity = players())
+        {
+            if(R:team():teamName()=="Lake Mutant"|R:team():teamName()=="Lake Mutant Alpha")
+            {
+                R:mutantTime(1)
+            }
+        }
+    }
+    
+    timer("mutants", 900)
+}
+
+if(clk("saveList"))
+{
+    saveList()
+    stoptimer("saveList")
+}
+
+if(fileLoaded()&fileClk())
+{
+    local New = jsonDecode(fileRead())
+    OptIn = New
+    
+    foreach(I, V:entity = players())
+    {
+        if(V:userAllow())
+        {
+            V:sendMessage("You previously opted in to receive join/leave messages from Fier's E2. You can opt out now if you'd like.")
+        }
+    }
+}
+
+if(!fileLoaded()&fileClk())
+{
+    print("File error: "+fileStatus())
+}
+
+if(chatClk())
+{
+    LS = lastSaid():explode(" ")
+    if(LS[1, string]:lower()=="!jprint")
+    {
+        hideChat(1)
+        if(!lastSpoke():userAllow())
+        {
+            lastSpoke():addUser()
+            lastSpoke():sendMessage("You are now receivng join/disconnect messages from the server.")
+            lastSpoke():sendMessage("You'll be opted in until you opt out - is persisted.")
+        }
+    }
+        
+    if(LS[1, string]:lower()=="!lprint")
+    {
+        hideChat(1)
+        if(lastSpoke():userAllow())
+        {
+            lastSpoke():remUser()
+            lastSpoke():sendMessage("You are no longer receivng join/disconnect messages from the server.")
+        }
+    }
+}

@@ -1,0 +1,250 @@
+@name Chat
+@persist Channels:table Players:table
+
+if(first())
+{
+
+    runOnLast(1)
+    runOnChat(1)
+    runOnConnect(1)
+    
+    Channels = table("Global"=table("owner"=noentity(),"password"=""))
+    Players = table()
+    
+    function entity:print(Message:string)
+    {
+        This:sendMessageColor(vec(255,0,255), "[Channels] ", vec(255,255,255), Message)
+    }
+    
+    function number entity:ownsChannel(Name:string)
+    {
+        if(Channels:exists(Name))
+        {
+            if(Channels[Name, table]["owner", entity] == This)
+            {
+                return 1
+            }
+        }
+        return 0
+    }
+
+    function number entity:isInChannel()
+    {
+        if(Players[This:steamID64(), string] != "Global")
+        {
+            return 1
+        }
+        return 0
+    }
+    
+    function entity:createChannel(Name:string, Password:string)
+    {
+        if(!Channels:exists(Name) && Name:lower() != "global")
+        {
+            if(Password:length() > 4)
+            {
+                Channels[Name, table] = table("owner"=This, "password" = Password)
+                Players[This:steamID64(), string] = Name
+                This:print("Created channel by name of '"+Name+"'. You are now chatting in this channel.")
+            }
+            else
+            {
+                This:print("Your channel password needs to be 4 characters long.")
+            }
+        }
+    }
+    
+    function string entity:getChannel()
+    {
+        if(This:isInChannel())
+        {
+            return Players[This:steamID64(), string]
+        }
+        return "Global"
+    }
+    
+    function number entity:isInChannel(Name:string)
+    {
+        if(Channels:exists(Name))
+        {
+            if(This:getChannel() == Name)
+            {
+                return 1
+            }
+        }
+        return 0
+    }
+    
+    
+    function entity:channelPrint(Message:string)
+    {
+        local Channel = This:getChannel()
+        if(Channels:exists(Channel))
+        {
+            This:sendMessageColor(vec(255,0,255), "["+Channel+"] ", vec(255,255,255), Message)
+        }
+    }
+    
+    function entity:channelPrint(MessageAr:array)
+    {
+        MessageAr:insertVector(1, vec(255,255,255))
+        MessageAr:insertString(1, "["+This:getChannel()+"] ")
+        MessageAr:insertVector(1, vec(255,0,255))
+        local Channel = This:getChannel()
+        if(Channels:exists(Channel))
+        {
+            This:sendMessageColor(MessageAr)
+        }
+    }
+    
+    function entity:disbandChannel()
+    {
+        local Name = This:getChannel()
+        if(This:ownsChannel(Name))
+        {
+            foreach(I, V:entity = players())
+            {
+                if(V:isInChannel(Name) && V != This)
+                {
+                    Players[V:steamID64(), string] = "Global"
+                    V:print("The channel by name of '"+Name+"' has been disbanded. You are now chatting in Global chat.")
+                }
+            }
+            Players[This:steamID64(), string] = "Global"
+            Channels:removeTable(Name)
+            This:print("Disbanded your channel by name of '"+Name+"'. You are now chatting in Global chat.")
+        }
+    }
+    
+    function entity:joinChannel(Name:string, Password:string)
+    {
+        local Prev = This:getChannel()
+        if(!This:ownsChannel(Prev))
+        {
+            if(Password == Channels[Name, table]["password", string])
+            {
+                Players[This:steamID64(), string] = Name
+                This:print("Joined channel by name of '"+Name+"'.")
+                foreach(I, V:entity = players())
+                {
+                    if(V:isInChannel(Name) && V != This)
+                    {
+                        V:channelPrint(array(vec(200,0,0), This:name(), vec(255,255,255), " has joined the channel."))
+                    }
+                }
+            }
+            else
+            {
+                This:print("Incorrect password.")
+            }
+        }
+    }
+    
+    function entity:leaveChannel()
+    {
+        local Prev = This:getChannel()
+        if(Prev != "Global")
+        {
+            Players[This:steamID64(), string] = "Global"
+            This:print("Left channel by name of '"+Prev+"'. You were sent back to 'Global'.")
+            foreach(I, V:entity = players())
+            {
+                if(V:isInChannel(Prev) && V != This)
+                {
+                    V:channelPrint(array(vec(200,0,0), This:name(), vec(255,255,255), " has left the channel."))
+                }
+            }
+            
+            if(This:ownsChannel(Prev))
+            {
+                This:disbandChannel()
+            }
+        }
+    }
+
+    concmd("ulx mute *")
+    foreach(I, V:entity = players())
+    {
+        Players[V:steamID64(), string] = "Global"
+        V:channelPrint(array("Expression 2 Chat - Test Version"))
+    }
+}
+
+if(last())
+{
+    concmd("ulx unmute *")
+}
+
+if(chatClk())
+{
+    local LSp = lastSpoke()
+    local LS = LSp:lastSaid()
+    local LS_exp = LS:explode(" ")
+    
+    if(LS_exp[1, string]=="/w")
+    {
+        local Com = LS_exp[2, string]
+        if(LS_exp:exists(2))
+        {
+            if(Com == "join")
+            {
+                local Channel = LS_exp[3, string]
+                local Password = LS_exp[4, string]
+                
+                if(Channels:exists(Channel) && Channel != "Global" && Channel != "global")
+                {
+                    LSp:joinChannel(Channel, Password)
+                }
+                elseif(!Channels:exists(Channel))
+                {
+                    LSp:print("Channel by name of '"+Channel+"' doesn't exist.")
+                }
+                elseif(LSp:getChannel() != "Global" && (Channel == "Global" || Channel == "global"))
+                {
+                    LSp:print("You cannot join this channel. Leave your current one.")
+                }
+                elseif(LSp:getChannel() == Channel)
+                {
+                    LSp:print("You are already in this channel.")
+                }
+            }
+            elseif(Com == "leave")
+            {
+                if(LSp:isInChannel())
+                {
+                    LSp:leaveChannel()
+                }
+            }
+            elseif(Com == "create")
+            {
+                local Channel = LS_exp[3, string]
+                local Password = LS_exp[4, string]
+                
+                if(!Channels:exists(Channel) && Channel:lower() != "global")
+                {
+                    LSp:createChannel(Channel, Password)
+                }
+                elseif(Channels:exists(Channel))
+                {
+                    LSp:print("Channel by name of '"+Channel+"' already exists.")
+                }
+            }
+            print(Com+" | "+LS_exp[3, string]+" | "+LS_exp[4, string])
+        }
+        else
+        {
+            # show all commands/help text
+        }
+    }
+    
+    if(LS:explode("")[1, string] != "/" && LS:explode("")[1, string] != "!")
+    {
+        foreach(I, V:entity = players())
+        {
+            if(V:isInChannel(LSp:getChannel()))
+            {
+                V:channelPrint(array(teamColor(LSp:team()), LSp:name(), vec(255,255,255), ": "+LS))
+            }
+        }
+    }
+}

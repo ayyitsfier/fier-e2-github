@@ -1,0 +1,257 @@
+@name Localization
+@persist Languages:table Users:table DefaultLang:string
+
+if(first())
+{
+
+    function number entity:hasSavedLanguage()
+    {
+        return (Users:exists(This:steamID64()))
+    }
+
+    function entity:applyDefaultLang()
+    {
+        if(Languages:exists(DefaultLang))
+        {
+            Users[This:steamID64(), string] = DefaultLang
+            #This:sendMessage("No language was selected, so the default of '"+DefaultLang+"' was selected.")
+        }
+    }
+
+    function entity:setLanguage(Lang:string)
+    {
+        if(Languages:exists(Lang))
+        {
+            Users[This:steamID64(), string] = Lang
+            This:sendMessage("Language switched to "+Lang) # Add support for a language to have a custom set message.
+        }
+    }
+
+    function string entity:getLanguage()
+    {
+        if(!This:hasSavedLanguage())
+        {
+            This:applyDefaultLang()
+        }
+    
+        return Users[This:steamID64(), string]
+    }
+
+    function createDictionary(Lang:string, Title:string, Default:number)
+    {
+        if(!Languages:exists(Lang))
+        {
+            Languages[Lang, table] = table(
+                "title"         =   Title,
+                "definitions"   =   table()
+            )
+            if(Default>=1)
+            {
+                DefaultLang = Lang
+            }
+        
+            print(Lang+"/dict created.")
+        }
+    }
+
+    function number dictionaryHasKey(Lang:string, Key:string)
+    {
+        if(Languages:exists(Lang))
+        {
+            return Languages[Lang, table]["definitions", table]:exists(Key)
+        }
+        return 0
+    }
+
+    function addDefinition(Lang:string, Key:string, Transl_Phrase:string)
+    {
+        if(Languages:exists(Lang))
+        {
+            if(!dictionaryHasKey(Lang, Key))
+            {
+                Languages[Lang, table]["definitions", table][Key, string] = Transl_Phrase
+            }
+        }
+    }
+
+    function string:addDefinition(Lang:string, Key:string)
+    {
+        addDefinition(Lang, Key, This)
+    }
+
+    function string getSimplePhrase(Lang:string, Key:string)
+    {
+        if(Languages:exists(Lang))
+        {
+            if(Languages[Lang, table]["definitions", table]:exists(Key))
+            {
+                return Languages[Lang, table]["definitions", table][Key, string]
+            }
+        }
+        return "error"
+    }
+    
+    function number string:isVowel()
+    {
+        local Vowels = table("a"=1,"e"=1,"i"=1,"o"=1,"u"=1)
+        return (Vowels:exists(This:lower()))
+    }
+
+    function table table:forceString()
+    {
+        foreach(I, V:number = This)
+        {
+            This[I, string] = toString(V)
+        }
+        
+        foreach(I, V:vector = This)
+        {
+            This[I, string] = toString(V)
+        }
+        
+        foreach(I, V:normal = This)
+        {
+            This[I, string] = toString(V)
+        }
+        
+        foreach(I, V:vector4 = This)
+        {
+            This[I, string] = toString(V)
+        }
+        
+        foreach(I, V:vector2 = This)
+        {
+            This[I, string] = toString(V)
+        }
+        
+        foreach(I, V:entity = This)
+        {
+            This[I, string] = toString(V)
+        }
+    
+        return This
+    }
+    
+    function string string:replaceAan()
+    {
+        local Phrase = This
+        
+        if(Phrase:lower():findRE("\a\{n\}"))
+        {
+            while(Phrase:lower():findRE("\a\{n\}") & perf(5))
+            {
+                local Phrase_exp = Phrase:explode(" ")
+                local Space = 0
+                
+                foreach(I, V:string = Phrase_exp)
+                {
+                    if(V:lower():findRE("\a\{n\}"))
+                    {
+                        Space = I
+                    }
+                }
+                
+                if(Space >= 1)
+                {
+                    if(Phrase_exp[Space+1, string]:explode("")[1, string]:isVowel() == 1)
+                    {
+                        Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("a{n}", "an")
+                        Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("A{n}", "An")
+                    }
+                    else
+                    {
+                        Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("a{n}", "a")
+                        Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("A{n}", "A")
+                    }
+                }
+                else
+                {
+                    Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("a{n}", "a")
+                    Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("A{n}", "A")
+                }
+            Phrase = Phrase_exp:concat(" ")
+            }
+        }
+        
+        return Phrase
+    }
+    
+    function string string:replaceSs()
+    {
+        local Phrase = This
+        
+        if(Phrase:lower():findRE("\{\s\}"))
+        {
+            while(Phrase:lower():findRE("\{\s\}") & perf(5))
+            {
+                local Phrase_exp = Phrase:explode(" ")
+                local Space = 0
+                
+                foreach(I, V:string = Phrase_exp)
+                {
+                    if(V:findRE("\{\s\}"))
+                    {
+                        Space = I
+                    }
+                    
+                }
+            
+                if(Space >= 1)
+                {
+                    if(Phrase_exp[Space-1, string]:toNumber() > 1)
+                    {
+                        Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("{s}", "s")
+                    }
+                    else
+                    {
+                        Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("{s}", "")
+                    }
+                }
+                else
+                {
+                    Phrase_exp[Space, string] = Phrase_exp[Space, string]:replace("{s}", "")
+                }
+            Phrase = Phrase_exp:concat(" ")
+            }
+        }
+        return Phrase
+    }
+
+    function string getPhrase(Lang:string, Key:string, Format:table)
+    {
+        local Phrase = getSimplePhrase(Lang, Key)
+        
+        Format = Format:forceString()
+        foreach(I, V:string = Format)
+        {
+            Phrase = Phrase:replace("{_"+I+"}", V)
+        }
+    
+        # Grammar rules only apply to the American-English language (and technically the British-English language)
+        # More advanced support could be soon.
+        if(Phrase:lower():findRE("\a\{n\}"))
+        {
+            Phrase = Phrase:replaceAan()
+        }
+        
+        if(Phrase:lower():findRE("\{\s\}"))
+        {
+            Phrase = Phrase:replaceSs()
+        }
+        
+        return Phrase
+    }
+
+    function string entity:getPhrase(Simple:number, Key:string, Format:table)
+    {
+        if(Simple<=0)
+        {
+            return getPhrase(This:getLanguage(), Key, Format)
+        }
+        elseif(Simple>=1)
+        {
+            return getSimplePhrase(This:getLanguage(), Key)
+        }
+    }
+
+}

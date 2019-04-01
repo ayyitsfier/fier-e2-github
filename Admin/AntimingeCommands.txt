@@ -1,0 +1,118 @@
+@persist Minges:table Last:table
+
+if(first())
+{
+    
+    Minges = table()
+    
+    runOnChat(1)
+    runOnConnect(1)
+    runOnDisconnect(1)
+    runOnFile(1)
+    
+    if(fileCanLoad())
+    {
+        fileLoad("fiers/antiminge.txt")
+    }
+
+}
+
+if(chatClk())
+{
+    if(lastSpoke():isAdmin())
+    {
+        LS = lastSaid():explode(" ")
+        if(LS[1, string]:lower()=="!minge")
+        {
+            local Ply = findPlayerByName(LS[2, string])
+            if(LS[2, string]:find("STEAM_0:"))
+            {
+                Ply = findPlayerBySteamID(LS[2, string])
+            }
+            
+            Minges[Ply:steamID(), number] = 1
+            
+            local Save = jsonEncode(Minges, 1)
+            if(fileCanWrite())
+            {
+                fileWrite("fiers/antiminge.txt", Save)
+            }
+            
+            Ply:plySpawn()
+            Ply:plyStripWeapons()
+            concmd("ulx freeze $"+Ply:steamID())
+            Ply:sendMessage("An admin has recognized you as a minge. You have been respawned and frozen.")
+            Ply:sendMessage("We request that you do not leave the server while we figure this out.")
+            Ply:sendMessage("Leaving gives the impression that you are in the wrong and can end in a permaban.")
+            
+            players():sendMessage("An admin has recognized that "+Ply:name()+" is a minge.")
+            
+        }
+            
+        if(LS[1, string]:lower()=="!free")
+        {
+            local Ply = findPlayerByName(LS[2, string])
+            if(LS[2, string]:find("STEAM_0:"))
+            {
+                Ply = findPlayerBySteamID(LS[2, string])
+            }
+            
+            if(Ply:isPlayer())
+            {
+                Minges:removeNumber(Ply:steamID())
+                
+                local Save = jsonEncode(Minges, 1)
+                if(fileCanWrite())
+                {
+                    fileWrite("fiers/antiminge.txt", Save)
+                }
+                
+                Ply:plySpawn()
+                concmd("ulx unfreeze $"+Ply:steamID())
+                Ply:sendMessage("An admin has decided that you are not doing some wrong. You have been freed!")
+                
+                players():sendMessage("An admin decided to release "+Ply:name()+" as they are innocent.")
+            }
+        }
+    }
+}
+
+if(disconnectClk()) 
+{
+
+    if(Minges[lastDisconnectedPlayer():steamID(), number]==1)
+    {
+        players():sendMessage("Possible minge "+lastDisconnectedPlayer():name()+" - "+lastDisconnectedPlayer():steamID()+" has left the server.")
+    }
+
+}
+
+if(connectClk())
+{
+
+    if(Minges[lastConnectedPlayer():steamID(), number]==1)
+    {
+        playersAdmins():sendMessage(lastConnectedPlayer():name()+" has rejoined. Freezing player.")
+        Last["ent", entity] = lastConnectedPlayer()
+        timer("DOITAGAIN", 2500)
+    }
+
+}
+
+if(clk("DOITAGAIN"))
+{
+    stoptimer("DOITAGAIN")
+    Last["ent", entity]:plySpawn()
+    Last["ent", entity]:plyStripWeapons()
+    concmd("ulx freeze $"+Last["ent", entity]:steamID())
+    
+    playersAdmins():sendMessage(Last["ent", entity]:name()+" has rejoined. Froze player.")
+}
+
+if(fileClk() && fileLoaded())
+{
+
+    local Table = jsonDecode(fileRead())
+    Minges = Table
+
+}

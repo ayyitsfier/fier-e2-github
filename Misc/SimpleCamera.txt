@@ -1,0 +1,154 @@
+@name CameraTest
+@inputs E:wirelink Light:entity
+@persist Cam:ranger
+@persist Res X Y FOV MaxDist LightColor DistColor ShadowColor
+@persist Textures:table
+
+if(first()|duped())
+{
+
+FOV = 60
+Res = 512
+MaxDist = 15000
+LightColor = 1
+DistColor = 1
+ShadowColor = 1
+
+Textures = table()
+Textures["maps/gm_construct/concrete", vector] = vec(170,170,170)
+Textures["CONSTRUCT_CONCRETE_GROUND", vector] = vec(150,150,150)
+Textures["WALL_TOP", vector] = vec(160,160,160)
+Textures["WALL_BOTTOM", vector] = vec(190,80,80)
+Textures["water", vector] = vec(90,90,210)
+Textures["SKYBOX", vector] = vec(60,60,110)
+Textures["building_template/roof_template", vector] = vec(70,70,70)
+Textures["brick", vector] = vec(210,50,50)
+Textures["plasterwall", vector] = vec(90,90,90)
+Textures["building_template/building_template", vector] = vec(190,190,190)
+
+function wirelink:initScreen()
+{
+This[1048574]=0
+This[1048569]=3
+This[1048575]=1
+This[1048572]=Res
+This[1048573]=Res
+}
+
+function wirelink:drawPixel(X, Y, Colorb:vector)
+{
+This[X+Y*Res]=rgb2digi(Colorb,3)
+}
+
+function vector string:textureColor()
+{
+foreach(I, V:vector = Textures)
+{
+if(This:find(I:lower()))
+{
+#print(I)
+return V
+break
+}
+}
+return vec(255,255,255)
+}
+
+function vector checkLight(Camera:ranger, Source:entity, Color0:vector)
+{
+
+Dot = (Source:pos() - Camera:position()):normalized():dot(Camera:hitNormal():normalized())
+
+rangerFilter(players())
+rangerFilter(Source)
+ShadowR = rangerOffset(Source:pos(), Camera:position() + Camera:hitNormal())
+
+Dist = (1-clamp((Camera:distance()/MaxDist),0,1))
+Shadow = ShadowR:hit()
+
+if(LightColor==1)
+{
+Color0 = ((Dot + 1) / 4) * Color0
+}
+elseif(LightColor==0)
+{
+Color0 = Color0
+}
+
+if(DistColor==1)
+{
+Color0 = (Dist) * Color0
+}
+
+if(ShadowColor==1)
+{
+Color0 = clamp((1-Shadow), 0.3, 1) * Color0
+}
+
+return Color0
+
+}
+
+function vector handleColor(Camera:ranger)
+{
+    
+Color0 = Cam:entity():getColor()
+if(Cam:hitWorld())
+{
+Color0 = Cam:hitTexture():lower():textureColor()
+}
+
+if(Cam:hitWorld() && Cam:hitTexture():find("displacement"))
+{
+Color0 = vec(randint(60,80),randint(150,170),randint(60,80))
+}
+
+return Color0
+
+}
+
+E:initScreen()
+
+}
+
+interval(100)
+
+while(Y<=Res & perf(90) & E)
+{
+
+local MidX = ((X-0.1)/Res*FOV-FOV/2)
+local MidY = ((Y-0.1)/Res*FOV-FOV/2)
+
+local TopX = ((X+0.3)/Res*FOV-FOV/2)
+local TopY = ((Y+0.3)/Res*FOV-FOV/2)
+
+rangerFilter(players())
+rangerFilter(Light)
+rangerHitWater(1)
+
+Cam = rangerAngle(MaxDist, MidX, MidY)
+
+rangerFilter(players())
+rangerFilter(Light)
+rangerHitWater(1)
+
+Cam2 = rangerAngle(MaxDist, TopX, TopY)
+
+Color = handleColor(Cam)
+Color = checkLight(Cam, Light, Color)
+
+Color2 = handleColor(Cam2)
+Color2 = checkLight(Cam2, Light, Color2)
+
+Color3 = (Color+Color2)/2
+
+E:drawPixel((Res-(X+1)),(Res-Y), Color3)
+
+X+=1
+if(X>=Res)
+{
+X = 0
+Y+=1
+}
+
+}

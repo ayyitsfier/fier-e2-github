@@ -1,0 +1,198 @@
+@name Setspawnpoint
+@persist Spawns:table Model:string
+
+runOnChat(1)
+runOnSpawn(1)
+
+if(first())
+{
+
+    propSpawnEffect(0)
+    propSpawnUndo(0)
+    
+    Model = "models/props_junk/sawblade001a.mdl"
+    
+    function number entity:hasSpawn()
+    {
+        return Spawns:exists(This:steamID()+"_p")
+    }
+    
+    Spawns = table()
+    
+    function entity:setSpawn()
+    {
+    
+        if(This:isOnGround()&&This:isAlive()&&Spawns[This:steamID()+"_c", number]==0)
+        {
+            Spawns[This:steamID()+"_v", vector] = This:pos()
+            Spawns[This:steamID()+"_a", angle] = This:eyeAngles()
+            
+            if(Spawns:exists(This:steamID()+"_p")) { Spawns[This:steamID()+"_p", entity]:propDelete(), Spawns[This:steamID()+"_p", entity] = noentity() }
+            
+            Spawns[This:steamID()+"_p", entity] = propSpawn(Model, This:pos()+vec(0,0,5), ang(0,0,0), 1)
+            Spawns[This:steamID()+"_p", entity]:propStatic(1)
+            
+            noCollideAll(Spawns[This:steamID()+"_p", entity], 1)
+            Spawns[This:steamID()+"_hp", number] = 200
+            
+            Spawns[This:steamID()+"_c", number] = 1
+            timer("cooldown_"+This:steamID(), 6000)
+            
+            if(This==owner())
+            {
+                Spawns[This:steamID()+"_c", number] = 0
+                stoptimer("cooldown_"+This:steamID())
+            }
+        }
+    
+        runOnDmg(1, Spawns[This:steamID()+"_p", entity])
+    
+    }
+    
+    function entity:moveSpawn()
+    {
+        if(This:isOnGround()&&This:isAlive())
+        {
+            Spawns[This:steamID()+"_v", vector] = This:pos()
+            Spawns[This:steamID()+"_a", angle] = This:eyeAngles()
+            Spawns[This:steamID()+"_p", entity]:setPos(Spawns[This:steamID()+"_v", vector])
+        }
+    }
+    
+    function entity:gotoCSpawn()
+    {
+    
+        if(This:hasSpawn())
+        {
+            if(This:isAlive())
+            {
+                This:plySetPos(Spawns[This:steamID()+"_v", vector])
+                This:plySetAng(Spawns[This:steamID()+"_a", angle])
+            }
+        }
+    }
+
+}
+
+if(chatClk())
+{
+        
+    if(lastSaid():lower()=="!myspawn"|lastSaid():lower()=="!ms"|lastSaid():lower()=="!customspawn"|lastSaid():lower()=="!cs")
+    {
+        if(lastSpoke():isOnGround()&&lastSpoke():isAlive()&&Spawns[lastSpoke():steamID()+"_c", number]==0)
+        {
+            if(Spawns:exists(lastSpoke():steamID()+"_p"))
+            {
+                lastSpoke():sendMessage("You already have a spawnpoint. Type '!move' to move it instead.")
+            }
+            else
+            {
+                if(lastSpoke()==owner())
+                {
+                    lastSpoke():setSpawn()
+                    lastSpoke():sendMessage("Your custom spawnpoint was saved to vector:")
+                    lastSpoke():sendMessage(Spawns[lastSpoke():steamID()+"_v", vector]:toString())
+                }
+                else
+                {
+                    moneyRequest(lastSpoke(), 650, "Spawnpoint")
+                }
+            }
+        }
+        elseif(Spawns[lastSpoke():steamID()+"_c", number]==1)
+        {
+            lastSpoke():sendMessage("You're on cooldown and can't use the !ms command.")
+        }
+        elseif(!lastSpoke():isAlive())
+        {
+            lastSpoke():sendMessage("Nice try! You're dead, you can't set a spawnpoint.")
+        }
+        else
+        {
+            lastSpoke():sendMessage("You're either in the air, or the E2 is having some random error. No spawnpoint for you.")
+        }
+    }
+    
+    if(lastSaid():lower()=="!move")
+    {
+        if(Spawns:exists(lastSpoke():steamID()+"_p"))
+        {
+            if(Spawns[lastSpoke():steamID()+"_c", number]==0)
+            {
+                lastSpoke():moveSpawn()
+                lastSpoke():sendMessage("Moved your custom spawnpoint to:")
+                lastSpoke():sendMessage(Spawns[lastSpoke():steamID()+"_v", vector]:toString())
+            }
+            else
+            {
+                lastSpoke():sendMessage("You're on cooldown and can't use the !move command.")
+            }
+        }
+        else
+        {
+            lastSpoke():sendMessage("You don't have a spawnpoint down, you can't move something that doesn't exist.")
+        }
+    }
+}
+
+if(spawnClk())
+{
+    timer("teleport_"+lastSpawnedPlayer():steamID(), 500)
+    lastSpawnedPlayer():plyFreeze(1)
+}
+
+if(moneyClk("Spawnpoint"))
+{
+    moneyClkPlayer():setSpawn()
+    moneyClkPlayer():sendMessage("Your custom spawnpoint was saved to vector:")
+    moneyClkPlayer():sendMessage(Spawns[moneyClkPlayer():steamID()+"_v", vector]:toString())
+    moneyClkPlayer():sendMessage("You cannot use this command again for 20 seconds.")
+}
+
+if(dmgClk())
+{
+    foreach(I, V:entity = Spawns)
+    {
+        if(V==dmgVictim())
+        {
+            local Look = I:explode("_")
+            local SID = Look[1, string]+"_"+Look[2, string]
+            Spawns[SID+"_hp", number] = ceil(Spawns[SID+"_hp", number]-dmgDamage())
+            
+            if(Spawns[SID+"_hp", number]<=0)
+            {
+                local ID = SID
+                runOnDmg(0, Spawns[ID+"_p", entity])
+                
+                Spawns:removeVector(ID+"_v")
+                Spawns:removeAngle(ID+"_a")
+                
+                Spawns[ID+"_p", entity]:propDelete()
+                
+                Spawns:removeEntity(ID+"_p")
+                Spawns:removeNumber(ID+"_hp")
+                
+                Player = findPlayerBySteamID(ID)
+                Player:sendMessage("Your custom spawnpoint was destroyed!")
+            }
+        }
+    }
+}
+
+foreach(I, V:entity = players())
+{
+    
+    if(clk("teleport_"+V:steamID()))
+    {
+        V:gotoCSpawn()
+        V:plyFreeze(0)
+    }
+    
+    
+    if(clk("cooldown_"+V:steamID()))
+    {
+        Spawns[V:steamID()+"_c", number] = 0
+        V:sendMessage("Your spawnpoint cooldown is over. You can use the !ms command again.")
+    }
+
+}

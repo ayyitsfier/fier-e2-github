@@ -1,0 +1,50 @@
+@name FileLoadQueue
+@persist FILE_LOAD_QUEUE:table
+@persist LOAD_QUEUE_OUTPUT:table
+
+if(first())
+{
+
+runOnFile(1)
+
+FILE_LOAD_QUEUE = table()
+
+function queueFileLoad(Path:string)
+{
+FILE_LOAD_QUEUE:pushTable(table("path"=Path))
+
+timer("queue_active", 500)
+}
+
+}
+
+if(clk("queue_active"))
+{
+
+if(FILE_LOAD_QUEUE:count()>=1)
+{
+if(fileCanLoad())
+{
+fileLoad(FILE_LOAD_QUEUE[1, table]["path", string])
+}
+}
+
+}
+
+if(fileClk())
+{
+
+if(fileLoaded())
+{
+LOAD_QUEUE_OUTPUT:pushTable(jsonDecode(fileRead()))
+}
+elseif(!fileLoading() && !fileLoaded() && fileStatus() == _FILE_UNKNOWN)
+{
+print("ERROR! no file found")
+}
+
+}
+
+
+
+

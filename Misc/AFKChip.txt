@@ -1,0 +1,128 @@
+@name AFK
+@persist Players:table
+@persist NPCs:table
+
+runOnChat(1)
+runOnDeath(1)
+
+if(first())
+{
+
+    NPCs = table()
+    
+    findByClass("npc_")
+    NPCs["gd", entity] = findResult(1)
+    
+    propSpawnUndo(0)
+    propSpawnEffect(0)
+    
+    function number entity:isAFK()
+    {
+        if(Players[This:steamID(), table]["afk", number]!=1)
+        {
+            return 0
+        }
+        else
+        {
+            return 1
+        }
+        return 0
+    }
+    
+    function entity:toggleAFK()
+    {
+        if(!This:isAFK()&This:isOnGround())
+        {
+            Players[This:steamID(), table] = table()
+            Players[This:steamID(), table]["afk", number] = 1
+            
+            local Prop1 = propSpawn("models/props_phx/construct/windows/window_curve360x2.mdl",This:pos() + vec(0,0,-5),1)
+            local Prop2 = propSpawn("models/props_phx/construct/windows/window_angle360.mdl",This:pos() + vec(0,0,90),1)
+            local Prop3 = propSpawn("models/props_phx/construct/windows/window_angle360.mdl",This:pos() + vec(0,0,-5),1)
+            Prop1:propStatic(1)
+            Prop2:propStatic(1)
+            Prop3:propStatic(1)
+            
+            Players[This:steamID(), table]["props", table] = table()
+            Players[This:steamID(), table]["props", table]["prop1", entity] = Prop1
+            Players[This:steamID(), table]["props", table]["prop2", entity] = Prop2
+            Players[This:steamID(), table]["props", table]["prop3", entity] = Prop3
+            
+            players():sendMessage(This:name()+" is now AFK.")
+            This:sendMessage("Jump to set yourself as active.")
+            
+            runOnKeys(This, 1)
+            This:plyGod(1)
+        }
+        elseif(This:isAFK())
+        {
+            Players[This:steamID(), table]["afk", number] = 0
+            Players[This:steamID(), table]["props", table]["prop1", entity]:propDelete()
+            Players[This:steamID(), table]["props", table]["prop2", entity]:propDelete()
+            Players[This:steamID(), table]["props", table]["prop3", entity]:propDelete()
+            
+            Players[This:steamID(), table]["props", table]:removeEntity("prop1")
+            Players[This:steamID(), table]["props", table]:removeEntity("prop2")
+            Players[This:steamID(), table]["props", table]:removeEntity("prop3")
+            players():sendMessage(This:name()+" is no longer AFK.")
+            runOnKeys(This, 0)
+            This:plyGod(0)
+        }
+    }
+
+}
+
+foreach(I, V:entity = players())
+{
+    if(keyClk(V))
+    {
+        if(V:keyJump())
+        {
+            if(V:isAFK())
+            {
+            V:toggleAFK()
+            }
+        }
+    }
+}
+
+if(chatClk())
+{
+
+    if(lastSaid():lower()=="/w afk")
+    {
+        
+        findClearWhiteList()
+        findClearBlackList()
+        findIncludeClass("player")
+        findIncludeClass("prop_physics")
+        findInSphere(lastSpoke():pos(), 150)
+        findExcludeEntity(lastSpoke())
+        findExcludePlayerProps(lastSpoke())
+        
+        local Yes = 1
+        
+        local Ply = findToArray()
+        if(Ply:count()>=1) { if(Ply[1, entity]:owner() != lastSpoke()) { Yes = 0 } }
+        if(Yes == 1)
+        {
+            if(lastSpoke():isAlive()&&(lastSpoke():team()==1||lastSpoke():team()==13))
+            {
+                lastSpoke():toggleAFK()
+            }
+            elseif(lastSpoke():team()!=1&&lastSpoke():team()!=13)
+            {
+                lastSpoke():sendMessage("You cannot go AFK with your current job.")
+            }
+        }
+    }
+
+}
+
+if(deathClk())
+{
+    if(lastDeath():isAFK())
+    {
+        lastDeath():toggleAFK()
+    }
+}

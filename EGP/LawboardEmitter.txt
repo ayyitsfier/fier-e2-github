@@ -1,0 +1,311 @@
+@name Lawboard
+@inputs E:wirelink
+@persist Laws:table Themes:table Default:array
+@persist Theme:string
+
+if(first()|dupefinished())
+{
+    
+    Theme = "default"
+    
+    Default = 
+    array(
+        "Do not attack other citizens except in self-defense.",
+        "Do not steal or break into people's homes.",
+        "Money printers and drugs are illegal."
+    )
+    
+    Laws = table()
+    
+    foreach(I, V:string = Default)
+    {
+        Laws[I, string] = V
+    }
+    
+    function vector4 string:toVector4()
+    {
+        if(This:explode("(")[1, string]=="vec")
+        {
+            local Str2 = This:replace("vec(", "")
+            Str = Str2:explode(",")
+            return vec4(Str[1, string]:toNumber(), Str[2, string]:toNumber(), Str[3, string]:toNumber(), Str[4, string]:toNumber())
+        }
+        else
+        {
+            return vec4(0,0,0,255)
+        }
+    }
+    
+    function vector4 string:toVector()
+    {
+        if(This:explode("(")[1, string]=="vec")
+        {
+            local Str2 = This:replace("vec(", "")
+            Str2 = Str2:replace(")", "")
+            Str = Str2:explode(",")
+        
+            if(Str:count()>=4)
+            {
+                return This:toVector4()
+            }
+            return vec4(Str[1, string]:toNumber(), Str[2, string]:toNumber(), Str[3, string]:toNumber(), 255)
+        }
+        else
+        {
+            return vec4(0,0,0,255)
+        }
+    }
+    
+    function buildLayout()
+    {
+        E:egpRoundedBox(1, vec2(256, 196), vec2(448, 512))
+        
+        E:egpRoundedBoxOutline(2, vec2(256, 196), vec2(448, 512))
+        E:egpSize(2, 2)
+        
+        E:egpBox(3, vec2(256,0), vec2(448, 60))
+        
+        E:egpBoxOutline(4, vec2(256,0), vec2(448, 60))
+        
+        E:egpText(5, "LAWS OF THE LAND", vec2(256, 0))
+        E:egpSize(5, 20)
+        E:egpAlign(5, 1, 1)
+    }
+    
+    function colorTheme()
+    {
+        if(Themes[Theme, table])
+        {
+            E:egpColor(1, Themes[Theme, table][1, vector4])
+            E:egpColor(2, Themes[Theme, table][2, vector4])
+            E:egpColor(3, Themes[Theme, table][3, vector4])
+            E:egpColor(4, Themes[Theme, table][4, vector4])
+            E:egpColor(5, Themes[Theme, table][5, vector4])
+        }
+        else
+        {
+            E:egpColor(1, Themes["default", table][1, vector4])
+            E:egpColor(2, Themes["default", table][2, vector4])
+            E:egpColor(3, Themes["default", table][3, vector4])
+            E:egpColor(4, Themes["default", table][4, vector4])
+            E:egpColor(5, Themes["default", table][5, vector4])
+        }
+    }
+    
+    function addTheme(Name:string, Colors:array)
+    {
+    
+        if(!Themes[Name, table])
+        {
+            if(Colors:count()==5)
+            {
+                Themes[Name, table] = table()
+                Themes[Name, table][1, vector4] = Colors[1, vector4]
+                Themes[Name, table][2, vector4] = Colors[2, vector4]
+                Themes[Name, table][3, vector4] = Colors[3, vector4]
+                Themes[Name, table][4, vector4] = Colors[4, vector4]
+                Themes[Name, table][5, vector4] = Colors[5, vector4]
+            }
+        }
+    
+    }
+    
+    function laws()
+    {
+        local LString = ""
+        for(I=1, Laws:count())
+        {
+            local V = Laws[I, string]
+            LString = LString+I+". "+V+"\n"
+        }
+        E:egpTextLayout(6, LString, vec2(40, 35), vec2(418, 417))
+    }
+    
+    function refresh()
+    {
+        setName("Lawboard \nTheme: "+Theme)
+        E:egpClear()
+        buildLayout()
+        colorTheme()
+        laws()
+    }
+    
+    function init()
+    {
+        addTheme("default", array(vec4(0,0,0,255), vec4(0,0,0,0), vec4(0,0,50,255), vec4(0,0,0,0), vec4(210,0,0,255)))
+        addTheme("purple", array(vec4(115,48,137,255), vec4(0,0,0,0), vec4(90,37,104,255), vec4(0,0,0,255), vec4(210,0,0,255)))
+        addTheme("blue", array(vec4(50,50,110,255), vec4(0,0,0,0), vec4(30,30,100,255), vec4(0,0,0,255), vec4(210,0,0,255)))
+        addTheme("orange", array(vec4(163,74,40,255), vec4(0,0,0,0), vec4(155,64,30,255), vec4(0,0,0,255), vec4(255,0,0,255)))
+        addTheme("blurple", array(vec4(78,93,148,255), vec4(0,0,0,0), vec4(114,137,218,255), vec4(0,0,0,0), vec4(255,255,255,255)))
+        
+        refresh()
+        hint("/add <text>, /remove <number>, /edit <number> <text>", 20)
+    }
+    
+    runOnChat(1)
+    
+    init()
+}
+
+if(changed(E))
+{
+    refresh()
+}
+
+if(chatClk(owner()))
+{
+    local LS = owner():lastSaid():explode(" ")
+    if(LS[1, string]:lower()=="/add")
+    {
+        hideChat(1)
+        LS:removeString(1)
+        local Str = LS:concat(" ")
+        local Len = Str:length()
+        
+        if(Len>0)
+        {
+            Laws:pushString(Str)
+        
+            refresh()
+        }
+        else
+        {
+            hint("Cannot add law. Error too short (Minimum of 1 character)", 7)
+        }
+    }
+    
+    if(LS[1, string]:lower()=="/remove")
+    {
+        hideChat(1)
+        local Num = LS[2, string]:toNumber()
+        if(Num>0)
+        {
+            if(Num>Default:count())
+            {
+                if(Num<=Laws:count())
+                {
+                    Laws:removeString(Num)
+                
+                    refresh()
+                }
+                else
+                {
+                    hint("Cannot remove law. Error too high (No law this high - above "+Laws:count()+")", 7) 
+                }
+            }
+            else
+            {
+                hint("Cannot remove law. Error default (Default laws cannot be overridden)", 7)
+            }
+        }
+        else
+        {
+            hint("Cannot remove law. Error too low (No law this low - below 0)", 7)
+        }
+    }
+
+    if(LS[1, string]:lower()=="/edit")
+    {
+        hideChat(1)
+        local Num = LS[2, string]:toNumber()
+        LS:removeString(1)
+        LS:removeString(1)
+        local Str = LS:concat(" ")
+        local Len = Str:length()
+        
+        if(Num>0)
+        {
+            if(Num>Default:count())
+            {
+                if(Num<=Laws:count())
+                {
+                    if(Len>0)
+                    {
+                        Laws[Num, string] = Str
+                    
+                        refresh()
+                    }
+                    else
+                    {
+                        hint("Cannot edit law. Error too short (Minimum of 1 character)", 7)
+                    }
+                }
+                else
+                {
+                    hint("Cannot edit law. Error too high (No law this high - above "+Laws:count()+")", 7)
+                }
+            }
+            else
+            {
+                hint("Cannot edit law. Error default (Default laws cannot be overridden)", 7)
+            }
+        }
+        else
+        {
+            hint("Cannot edit law. Error too low (No law this low - below 0)", 7)
+        }
+    }
+    
+    if(LS[1, string]:lower()=="/theme")
+    {
+        hideChat(1)
+        local Str = LS[2, string]
+        Theme = Str
+        refresh()
+    }
+    
+    if(LS[1, string]:lower()=="/clear")
+    {
+        hideChat(1)
+        if(Laws:count()>Default:count())
+        {
+            Laws = table()
+            foreach(I, V:string = Default)
+            {
+                Laws[I, string] = V
+            }
+            refresh()
+        }
+    }
+    
+    if(LS[1, string]:lower()=="/addtheme")
+    {
+        hideChat(1)
+        if(!Themes[LS[2, string]:lower(), table])
+        {
+            Name = LS[2, string]:lower()
+            TC = table()
+            LS:removeString(1)
+            LS:removeString(1)
+            local Str = LS:concat("")
+            Str = Str:replace("Color[", "")
+            Str = Str:replace("]", "")
+            LS = Str:explode("),")
+            
+            foreach(I, V:string = LS)
+            {
+                TC[I, vector4] = V:toVector()
+            }
+            
+            local V1 = TC[1, vector4]:toString():replace("[", "")
+            V1 = V1:replace("]", "")
+            
+            local V2 = TC[2, vector4]:toString():replace("[", "")
+            V2 = V2:replace("]", "")
+            
+            local V3 = TC[3, vector4]:toString():replace("[", "")
+            V3 = V3:replace("]", "")
+            
+            local V4 = TC[4, vector4]:toString():replace("[", "")
+            V4 = V4:replace("]", "")
+            
+            local V5 = TC[5, vector4]:toString():replace("[", "")
+            V5 = V5:replace("]", "")
+            
+            print("addTheme(\""+Name+"\", array(vec4("+V1+"), vec4("+V2+"), vec4("+V3+"), vec4("+V4+"), vec4("+V5+")))")
+            Themes[Name, table] = TC
+            Theme = Name
+            refresh()
+        }
+    }
+}

@@ -1,0 +1,269 @@
+@name BlockPlayers
+@persist Allowed:table Size:number Active:number Kill:number Target:entity
+
+runOnChat(1)
+runOnFile(1)
+runOnDeath(1)
+
+if(first())
+{
+
+    Size = 60
+    Active = 1
+    Kill = 0
+    
+    holoCreate(1)
+    holoModel(1, "hqsphere")
+    holoScale(1, vec(Size)+1)
+    
+    
+    holoCreate(2)
+    holoModel(2, "hqsphere")
+    holoScale(2, vec(-Size))
+    holoAlpha(2, 150)
+    
+    holoMaterial(1, "models/props_lab/cornerunit_cloud")
+    holoMaterial(2, "models/props_combine/stasisshield_sheet")
+    
+    timer("find",75)
+    
+    function saveList()
+    {
+        if(fileCanWrite())
+        {
+            fileWrite("filewhitelist/spherelist.txt", jsonEncode(Allowed, 1))
+        }
+    }
+    
+    function loadList()
+    {
+        if(fileCanLoad())
+        {
+            fileLoad("filewhitelist/spherelist.txt")
+        }
+    }
+    
+    function entity:userAccess(Num:number)
+    {
+        if(Num==0)
+        {
+            if(Allowed[This:steamID(), table]["access", number]!=0)
+            {
+                Allowed:removeTable(This:steamID())
+                This:sendMessage("Your access has been removed from Fier's player sphere.")
+                timer("saveList",250)
+            }
+        }
+        
+        elseif(Num==1)
+        {
+            if(Allowed[This:steamID(), table]["access", number]!=1)
+            {
+                Allowed[This:steamID(), table] = table()
+                Allowed[This:steamID(), table]["access", number] = 1
+                Allowed[This:steamID(), table]["rpname", string] = This:name()
+                This:sendMessage("You have been added to Fier's player sphere.")
+                timer("saveList",250)
+            }
+        }
+    }
+    
+    loadList()
+
+}
+
+if(chatClk(owner()))
+{
+    LS = owner():lastSaid():lower():explode(" ")
+    if(LS[1, string]=="!add")
+    {
+        hideChat(1)
+        local Target = findPlayerByName(LS[2, string])
+        if(Target:isPlayer())
+        {
+            Target:userAccess(1)
+            print("Added "+Target:name()+" to the access list.")
+        }
+    }
+
+    if(LS[1, string]=="!remove")
+    {
+        hideChat(1)
+        local Target = findPlayerByName(LS[2, string])
+        if(Target:isPlayer())
+        {
+            Target:userAccess(0)
+            print("Removed "+Target:name()+" from the access list.")
+        }
+    }
+
+    if(LS[1, string]=="!size")
+    {
+        hideChat(1)
+        Size = LS[2, string]:toNumber(10)
+        holoScale(1,vec(Size)+1)
+        holoScale(2,vec(-Size))
+    }
+    
+    if(LS[1, string]=="!list")
+    {
+        hideChat(1)
+        print(Allowed:count()+" users found!")
+            foreach(I, V:table = Allowed)
+            {
+                print(V["rpname", string])
+            }
+    }
+}
+
+if(clk("find"))
+{
+    if(findCanQuery())
+    {
+        findIncludeClass("player")
+        findIncludeClass("prop_physics")
+        findIncludeClass("prop_vehicle")
+        findIncludeClass("gmod")
+        findIncludeClass("wire")
+        findExcludeClass("wire_hologram")
+        findExcludeEntity(entity())
+        findInSphere(entity():pos(), Size*7)
+        
+        Items = findToArray()
+        
+        foreach(I, R:entity = Items)
+        {
+            if(R:isPlayer())
+            {
+                if(Allowed[R:steamID(), table]["access", number]!=1&&Active==1)
+                {
+                    if(R:inNoclip())
+                    {
+                    R:plySpawn()
+                    }
+                    else
+                    {
+                        if(Kill!=1)
+                        {
+                            local Distance = R:pos():distance(entity():pos())
+                            R:plyApplyForce(-R:vel()*3)
+                            if(!R:isAlive())
+                            {
+                                R:plySpawn()
+                            }
+                        }
+                        elseif(Kill==1&&R:isAlive())
+                        {
+                            R:plyApplyForce(R:toWorld(vec(0,0,8*R:plyGetMass())))
+                            Target = R
+                            timer("killPlayer",10)
+                            if(R:plyHasGod())
+                            {
+                                R:plyGod(0)
+                            }
+                        }
+                    }
+                }
+            }
+            elseif(!R:isPlayer())
+            {
+                if(R:isVehicle()|R:type()=="gmod_cameraprop")
+                {
+                    if(Allowed[R:owner():steamID(), table]["access", number]!=1&&Active==1)
+                    {
+                        local Driver = R:driver()
+                        Driver:plyExitVehicle()
+                        Driver:plySetPos(vec(randint(-100,100),randint(-50,50),-78))
+                        R:setEntPos(vec(-10000,-10000,-10000))
+                    }
+                }
+                else
+                {
+                    if(Allowed[R:owner():steamID(), table]["access", number]!=1&&Active==1)
+                    {
+                            R:setEntPos(vec(-10000,-10000,-10000))
+                    }
+                }
+            }
+        }
+    }
+    
+    if(changed(owner():keyPressed("F1"))&&owner():keyPressed("F1"))
+    {
+        Active = !Active
+        Msg = Active == 1 ? "Stopping players from entry." : "All players permitted to enter."
+        print(Msg)
+    }
+    
+    if(changed(owner():keyPressed("F2"))&&owner():keyPressed("F2"))
+    {
+        Kill = !Kill
+        Msg = Kill == 1 ? "Killing players inside!" : "Pushing players outwards"
+        print(Msg)
+    }
+    
+    if(changed(Active)&&Active==1)
+    {
+        holoAlpha(1,255)
+    }
+    elseif(changed(Active)&&Active==0)
+    {
+        holoAlpha(1,0)
+    }
+    
+    if(changed(Kill)&&Kill==1)
+    {
+        holoColor(1,vec(255,0,0))
+    }
+    elseif(changed(Kill)&&Kill==0)
+    {
+        holoColor(1,vec(255,255,255))
+    }
+    
+    timer("find",100)
+}
+
+if(clk("killPlayer"))
+{
+    Target:plyApplyForce(Target:toWorld(vec(0,0,-250*Target:plyGetMass())))
+    stoptimer("killPlayer")
+}
+
+if(deathClk()&lastDeath()==Target)
+{
+    timer("respawn", 250)
+}
+
+if(clk("respawn"))
+{
+    Target:plySpawn()
+    Target = noentity()
+    stoptimer("respawn")
+}
+
+if(clk("saveList"))
+{
+    saveList()
+    stoptimer("saveList")
+}
+
+if(fileLoaded()&fileClk())
+{
+    local New = jsonDecode(fileRead())
+    Allowed = New
+    
+    foreach(I, V:entity = players())
+    {
+        if(Allowed[V:steamID(), table]["access", number]==0&&V:isAdmin()|Allowed[V:steamID(), table]["access", number]==0&&V:isSuperAdmin())
+        {
+            V:userAccess(1)
+            print(V:name()+" is an admin and has been added to the whitelist.")
+        }
+    }
+}
+elseif(!fileLoaded()&fileClk())
+{
+    saveList()
+    print("Attempting to fix file error")
+    print("Reason: status_"+fileStatus())
+}

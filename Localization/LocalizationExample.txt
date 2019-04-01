@@ -1,0 +1,119 @@
+#include "LocalizationCore"
+
+# This is an example of how you could use the honestly very basic localization chip I made and included in this folder on my GitHub.
+# You can modify the chip to fit your possibly more advanced needs and then also created a more advanced use of it, like a
+# user interface that bases itself on a saved language.
+
+if(first())
+{
+
+    runOnChat(1)
+    
+    Languages = table(
+        "en-US" = table(
+            "title"         = "English Language",
+            "definitions"   = table(
+                "intro"         = "This is the English localization.",
+                "argument"      = "You can replace a variable within the text, like {_X}.",
+                "arguments"     = "You can have more than one variable within the text, like {_X} and {_Y}.",
+                "plural"        = "It'll even add an 's' to a word that needs to be plural. Like {_X} cat{s}.",
+                "an"            = "And will correctly modify an/a following English grammar rules. Like a{n} {_X}.",
+                "simple"        = "You can view the simple value by using the .sdef [key] command in chat.",
+                "error_no_key"  = "Cannot find the inputted key in this localization."
+            )
+        ),
+        "es-MX" = table(
+            "title"         = "Spanish (Mexico) Language",
+            "definitions"   = table(
+                "intro"         = "Esta es la localizacion espanola.",
+                "argument"      = "Puedes reemplazar una variable dentro del texto, como {_X}.",
+                "arguments"     = "Puede tener ms de una variable dentro del texto, como {_X} y {_Y}.",
+                "plural"        = "Esto solo est disponible en la localizacin en ingls ya que est programado para seguir esas reglas.",
+                "an"            = "Esto solo est disponible en la localizacin en ingls ya que est programado para seguir esas reglas.",
+                "simple"        = "Puede ver el valor simple usando el comando .sdef [tecla] en el chat.",
+                "error_no_key"  = "No se puede encontrar la clave ingresada en esta localizacin."
+            )
+        )
+    )
+    
+    DefaultLang = "en-US"
+
+}
+
+if(chatClk())
+{
+
+    local Last = lastSpoke()
+    local LS = Last:lastSaid()
+    local LS_exp = LS:explode(" ")
+    
+    local Lang = Last:getLanguage()
+    
+    if(LS_exp[1, string]:lower()==".def")
+    {
+        if(LS_exp:exists(2))
+        {
+            if(dictionaryHasKey(Lang, LS_exp[2, string]:lower()))
+            {
+                local Tab = table()
+                
+                if(LS_exp:exists(3))
+                {
+                    Tab["X", string] = LS_exp[3, string]
+                }
+                
+                if(LS_exp:exists(4))
+                {
+                    Tab["Y", string] = LS_exp[4, string]
+                }
+            
+                Last:sendMessage(Last:getPhrase(0, LS_exp[2, string]:lower(), Tab))
+            }
+            else
+            {
+                Last:sendMessage(Last:getPhrase(1, "error_no_key", table()))
+            }
+        }
+    }
+    
+    if(LS_exp[1, string]:lower()==".sdef")
+    {
+        if(LS_exp:exists(2))
+        {
+            if(dictionaryHasKey(Lang, LS_exp[2, string]:lower()))
+            {
+                Last:sendMessage(Last:getPhrase(1, LS_exp[2, string]:lower(), table()))
+            }
+            else
+            {
+                Last:sendMessage(Last:getPhrase(1, "error_no_key", table()))
+            }
+        }
+    }
+    
+    if(LS_exp[1, string]:lower()==".lang")
+    {
+        if(LS_exp:exists(2))
+        {
+            if(Languages:exists(LS_exp[2, string]))
+            {
+                Last:setLanguage(LS_exp[2, string])
+            }
+            else
+            {
+                Last:setLanguage(DefaultLang)
+            }
+        }
+    }
+    
+    if(LS_exp[1, string]:lower()==".list")
+    {
+        Last:sendMessage("The \'"+Languages[Last:getLanguage(), table]["title", string]+"\' localization has the following keys ("+Languages[Last:getLanguage(), table]["definitions", table]:count()+"):")
+        local LanguageTable = Languages[Last:getLanguage(), table]["definitions", table]
+        foreach(I, V:string = LanguageTable)
+        {
+            Last:sendMessage(I)
+        }
+    }
+
+}
