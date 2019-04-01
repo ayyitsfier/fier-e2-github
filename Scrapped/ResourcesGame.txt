@@ -1,0 +1,643 @@
+@name Resources
+@inputs E:wirelink
+@persist [Players Resources]:table # Player-data table, resource-data table
+@persist [Recipes]:table # Recipes for structure and crafting
+@persist [PStructures]:table # Structures that have been placed on the map
+@persist [Config Localization]:table # Anything extra?
+@persist Temp:table Axes:array
+
+if(first() | dupefinished())
+{
+
+runOnChat(1)
+runOnFile(1)
+
+propSpawnUndo(0)
+propSpawnEffect(0)
+
+Config = table()
+Config["resourceMinDistance", number] = 600
+Config["resourceMax", number] = 15
+Config["resourceTypes", array] = array("maple","pine","oak")
+Config["resourceTypeBaseOutputs", array] = array(2,3,5)
+Config["resourceTypeHealth", array] = array(35,25,20)
+Config["resourceTypeModels", array] = array("models/props/cs_militia/tree_large_militia.mdl", "models/props_foliage/tree_springers_01a.mdl", "models/props_foliage/tree_poplar_01.mdl")
+Config["resourceRespawnTimer", number] = 10
+Config["npc", entity] = noentity()
+
+Axes = array(
+    "Iron",
+    "Platinum",
+    "Mystical",
+    "Essence"
+)
+
+Localization = table(
+    "english" = table(
+        "item_received" = "You received a(n) {X}.",
+        "items_received" = "You received {X} {Y}.",
+        "cant_find" = "There is no {X} with that name.",
+        "player_has_items" = "{X} has the following items:",
+        "player_has_0_items" = "{X} doesn't have any items.",
+        "requesting_to_buy" = "Sending money request to buy {X}.",
+        "cant_afford" = "You can't afford to buy {X}.",
+        "cl_config_set" = "A clientside setting was changed!",
+        "error_no_trans" = "It seems like we ran into a big OOF! There is no translation for the requested key. Contact Fier!",
+        "upgraded_item" = "You upgraded your {X} to {Y}."
+    ),
+    "espanol" = table(
+        "item_received" = "Usted recibio un {X}.",
+        "items_received" = "Has recibido {X} {Y}.",
+        "cant_find" = "No hay {X} con ese nombre.",
+        "player_has_items" = "{X} tiene los siguientes articulos.",
+        "player_has_0_items" = "{X} no tiene ningun articulo.",
+        "requesting_to_buy" = "Enviar solicitud de dinero para comprar {X}.",
+        "cant_afford" = "No puede permitirse comprar {X}.",
+        "cl_config_set" = "Se modifico una configuracion del lado del cliente!",
+        "error_no_trans" = "Parece que nos encontramos con un gran OOF! No hay traduccion para la clave solicitada. Contacta a Fier!"
+    )
+)
+
+function loadResourceNodes()
+{
+
+foreach(I, V:table = Resources)
+{
+V["resourceEntity", entity]:propDelete()
+}
+
+Resources = table()
+
+local RMinD = Config["resourceMinDistance", number]
+
+for(I=1, Config["resourceMax", number])
+{
+local Pos = entity():pos() + vec(randint(-RMinD,RMinD),randint(-RMinD,RMinD),30)
+local Ang = ang(0,(random(0,1)*135),90)
+local Res = propSpawn("models/hunter/blocks/cube05x3x05.mdl", Pos, Ang, 1)
+
+local ResType = randint(1, Config["resourceTypes", array]:count())
+
+Res:setAlpha(0)
+holoCreate(I, Pos-vec(0,0,35), vec(1), ang(0), vec(255), Config["resourceTypeModels", array][ResType, string])
+holoParent(I, Res)
+
+Resources[I:toString(), table] = table()
+Resources[I:toString(), table]["resourceID", string] = I:toString()
+Resources[I:toString(), table]["resourceEntity", entity] = Res
+Resources[I:toString(), table]["resourceType", string] = Config["resourceTypes", array][ResType, string]
+Resources[I:toString(), table]["resourceOutput", number] = Config["resourceTypeBaseOutputs", array][ResType, number] + randint(-1,1)
+Resources[I:toString(), table]["resourceHealth", number] = Config["resourceTypeHealth", array][ResType, number]
+}
+}
+
+function number entity:isAResource()
+{
+foreach(I, V:table = Resources)
+{
+if(V["resourceEntity", entity] == This)
+{
+return 1
+break
+}
+}
+return 0
+}
+
+function string entity:resourceID()
+{
+foreach(I, V:table = Resources)
+{
+if(V["resourceEntity", entity] == This)
+{
+return V["resourceID", string]
+break
+}
+}
+return "none"
+}
+
+function string entity:resourceType()
+{
+if(This:isAResource())
+{
+return Resources[This:resourceID(), table]["resourceType", string]
+}
+return "none"
+}
+
+function number entity:resType()
+{
+if(This:isAResource())
+{
+local Type = This:resourceType()
+local Invert = invert(Config["resourceTypes", array])
+return Invert[Type, number]
+}
+return 0
+}
+
+function number entity:resourceOutput()
+{
+if(This:isAResource())
+{
+return Resources[This:resourceID(), table]["resourceOutput", number]
+}
+return 0
+}
+
+function number entity:resourceHealth()
+{
+if(This:isAResource())
+{
+return Resources[This:resourceID(), table]["resourceHealth", number]
+}
+return 0
+}
+
+function entity:setResourceHealth(Health:number)
+{
+if(This:isAResource())
+{
+Resources[This:resourceID(), table]["resourceHealth", number] = Health
+}
+}
+
+function entity:removeTree()
+{
+if(This:isAResource())
+{
+local Ent = Resources[This:resourceID(), table]["resourceEntity", entity]
+Resources:removeTable(This:resourceID())
+Ent:propDelete()
+}
+}
+
+function loadNPC()
+{
+local NPC = propSpawn("models/hunter/blocks/cube1x150x1.mdl", entity():toWorld(vec(700,150,30)), ang(0,0,90), 1)
+NPC:setAlpha(0)
+holoCreate(500, entity():toWorld(vec(700,150,0)), vec(1), ang(0,180,0), vec(255), "models/odessa.mdl")
+holoAnim(500, 8)
+
+E:egpClear()
+E:egpText(1, "Test", vec2(256, 192))
+E:egpAlign(1, 1, 1)
+E:egpSize(1, 30)
+
+Config["npc", entity] = NPC
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function entity:printTo(Message:string)
+{
+This:sendMessageColor(vec(255,0,255), "[Woodcutter] ", vec(255), Message)
+}
+
+function entity:printTo(Message:array)
+{
+This:sendMessageColor(vec(255,0,255), "[Woodcutter] ", vec(255), Message)
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function number entity:hasAxe()
+{
+return (Players[This:steamID64(), table]:exists("axe"))
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function string entity:getLocalizedString(Key:string)
+{
+local Language = Players[This:steamID64(), table]["lang", string]
+if(Localization[Language, table]:exists(Key))
+{
+return Localization[Language, table][Key, string]
+}
+else
+{
+return Localization[Language, table]["error_no_trans", string]
+}
+}
+
+function string entity:getLocalizedString(Key:string, Inputs:table)
+{
+local Language = Players[This:steamID64(), table]["lang", string]
+if(Localization[Language, table]:exists(Key))
+{
+local Str = Localization[Language, table][Key, string]
+foreach(I, V:string = Inputs)
+{
+Str = Str:replace("{"+I+"}", V)
+}
+return Str
+}
+else
+{
+return Localization[Language, table]["error_no_trans", string]
+}
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function entity:loadPlayerData()
+{
+if(fileCanLoad())
+{
+Temp["load", entity] = This
+fileLoad("woodcutting/"+This:steamID64()+".txt")
+}
+}
+
+function entity:savePlayerData(Table:table)
+{
+if(fileCanWrite())
+{
+fileWrite("woodcutting/"+This:steamID64()+".txt", jsonEncode(Table, 1))
+}
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function entity:giveAxe()
+{
+if(!This:hasAxe())
+{
+This:printTo("Fetching save data...")
+This:loadPlayerData()
+timer("createFile", 1250)
+Temp["save", entity] = This
+}
+}
+
+function number entity:axe()
+{
+if(This:hasAxe())
+{
+return Players[This:steamID64(), table]["axe", number]
+}
+return 0
+}
+
+function string entity:axeType()
+{
+if(This:hasAxe())
+{
+return Axes[This:axe(), string]
+}
+return "none"
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function table entity:inventory()
+{
+if(This:hasAxe())
+{
+return Players[This:steamID64(), table]["inventory", table]
+}
+return table()
+}
+
+function number entity:getItemCount(Type:string)
+{
+if(This:hasAxe())
+{
+if(This:inventory():exists(Type))
+{
+return This:inventory()[Type, table]["count", number]
+}
+}
+return 0
+}
+
+function entity:giveItem(Type:string, Count:number)
+{
+if(This:hasAxe())
+{
+if(This:inventory():exists(Type))
+{
+Players[This:steamID64(), table]["inventory", table][Type, table]["count", number] = This:getItemCount(Type) + Count
+}
+else
+{
+Players[This:steamID64(), table]["inventory", table][Type, table] = table()
+Players[This:steamID64(), table]["inventory", table][Type, table]["count", number] = Count
+}
+}
+}
+
+function entity:takeItem(Type:string, Count:number)
+{
+This:giveItem(Type, -Count)
+}
+
+function number entity:hasItems()
+{
+if(This:hasAxe())
+{
+if(This:inventory():count()>0)
+{
+return 1
+}
+}
+return 0
+}
+
+function entity:printInventory(Target:entity)
+{
+if(Target:hasAxe())
+{
+This:printTo(This:getLocalizedString("player_has_items", table("X"=Target:name())))
+This:sendMessageColor(vec(0,255,255), Target:axeType()+" Axe")
+if(Target:hasItems())
+{
+foreach(I, V:table = Target:inventory())
+{
+local N = V["count", number]
+local T = I:explode("")
+local ResUp = T[1, string]:upper()
+local Res = ResUp+(I:sub(2))
+This:sendMessageColor(vec(255,255,0), "["+N+"] ", vec(255), Res+" logs")
+}
+}
+}
+elseif(!Target:hasAxe())
+{
+This:printTo(This:getLocalizedString("player_has_0_items", table("X"=Target:name())))
+}
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+function gameInit()
+{
+loadResourceNodes()
+loadNPC()
+
+timer("check_npc", 250)
+timer("respawn_nodes", Config["resourceRespawnTimer", number]*60000)
+}
+
+gameInit()
+
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+if(clk("check_npc"))
+{
+local NPC = Config["npc", entity]
+findInSphere(NPC:pos(), 50)
+local Plys = findToArray()
+
+foreach(I, Ply:entity = Plys)
+{
+if(Ply:pos():distance(NPC:pos())<=60)
+{
+if(Ply:keyUse())
+{
+if(!Ply:hasAxe())
+{
+Ply:giveAxe()
+}
+elseif(Ply:axe()<4)
+{
+moneyRequest(Ply, 10000*(Ply:axe()+1), "Axe", 15)
+}
+}
+}
+}
+
+timer("check_npc", 500)
+}
+
+if(moneyClk("Axe"))
+{
+local Ply = moneyClkPlayer()
+Players[Ply:steamID64(), table]["axe", number] = Ply:axe() + 1
+Ply:printTo(Ply:getLocalizedString("upgraded_item", table("X"="axe","Y"="quality of "+Ply:axeType())))
+
+local Tab = Players[Ply:steamID64(), table]
+Tab["rpname", string] = Ply:name()
+Ply:savePlayerData(Tab)
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+if(changed(keyClk()))
+{
+local Ply = keyClk()
+
+if(Ply:keyUse() && changed(Ply:keyUse()))
+{
+if(Ply:hasAxe())
+{
+local Tree = Ply:aimEntity()
+if(Tree:pos():distance(Ply:pos())<=60)
+{
+if(Tree:isAResource())
+{
+if(Tree:resourceHealth()>0)
+{
+local Dmg = Players[Ply:steamID64(), table]["axe", number] * 2
+Tree:setResourceHealth(Tree:resourceHealth() - Dmg)
+Ply:sendMessage(Tree:resourceHealth() + " / " + Config["resourceTypeHealth", array][Tree:resType(), number])
+if(Tree:resourceHealth()<=0)
+{
+Ply:giveItem(Tree:resourceType(), Tree:resourceOutput())
+local T = Tree:resourceType():explode("")
+local ResUp = T[1, string]:upper()
+local Res = ResUp+(Tree:resourceType():sub(2))
+Ply:printTo(Ply:getLocalizedString("items_received", table("X"=Tree:resourceOutput():toString(),"Y"=Res)))
+Tree:removeTree()
+
+local Tab = Players[Ply:steamID64(), table]
+Tab["rpname", string] = Ply:name()
+Ply:savePlayerData(Tab)
+}
+}
+}
+}
+}
+}
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+if(chatClk())
+{
+
+local LS = lastSaid():explode(" ")
+
+if(LS[1, string]:lower()==".wc")
+{
+if(LS[2, string]:lower()=="inventory" || LS[2, string]:lower()=="inv")
+{
+if(LS:exists(3))
+{
+local P = findPlayerByName(LS[3, string]:lower())
+if(P:isPlayer() && P:name():lower():find(LS[3, string]:lower()))
+{
+lastSpoke():printInventory(P)
+}
+else
+{
+lastSpoke():printTo(lastSpoke():getLocalizedString("cant_find", table("X"="player")))
+}
+}
+else
+{
+lastSpoke():printInventory(lastSpoke())
+}
+}
+
+if(LS[2, string]:lower()=="craft" || LS[2, string]:lower()=="c")
+{
+if(LS:exists(3))
+{
+if(LS[3, string]:lower()=="extractor")
+{
+if(lastSpoke():hasItems())
+{
+if(lastSpoke():getItemCount("maple")>=15)
+{
+lastSpoke():takeItem("maple", 15)
+}
+}
+}
+}
+else
+{
+lastSpoke():printTo(lastSpoke():getLocalizedString("cant_find", table("X"="craftable item")))
+}
+}
+
+if(LS[2, string]:lower()=="lang" || LS[2, string]:lower()=="l")
+{
+if(LS:exists(3))
+{
+
+if(!Players:exists(lastSpoke():steamID64()))
+{
+Players[lastSpoke():steamID64(), table] = table()
+}
+
+Players[lastSpoke():steamID64(), table]["lang", string] = LS[3, string]:lower()
+lastSpoke():printTo(lastSpoke():getLocalizedString("cl_config_set"))
+
+local Tab = Players[lastSpoke():steamID64(), table]
+Tab["rpname", string] = lastSpoke():name()
+
+if(lastSpoke():hasAxe())
+{
+lastSpoke():savePlayerData(Tab)
+}
+}
+else
+{
+lastSpoke():printTo(lastSpoke():getLocalizedString("cant_find", table("X"="language")))
+}
+}
+}
+
+}
+
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # 
+
+if(fileLoaded()&&fileClk())
+{
+local Ply = Temp["load", entity]
+
+Players[Ply:steamID64(), table] = jsonDecode(fileRead())
+Players[Ply:steamID64(), table]:removeString("rpname")
+runOnKeys(Ply, 1, array("use"))
+Ply:printTo(Ply:getLocalizedString("item_received", table("X"=Ply:axeType()+" Axe")))
+
+Temp:removeEntity("load")
+}
+
+if(clk("createFile"))
+{
+local Ply = Temp["save", entity]
+
+if(!fileLoaded()&&!fileLoading())
+{
+if(fileStatus()==_FILE_UNKNOWN)
+{
+
+Language = "english"
+if(Players[Ply:steamID64(), table]:exists("lang"))
+{
+Language = Players[Ply:steamID64(), table]["lang", string]
+}
+
+Players[Ply:steamID64(), table] = table()
+Players[Ply:steamID64(), table]["inventory", table] = table()
+Players[Ply:steamID64(), table]["axe", number] = 1
+Players[Ply:steamID64(), table]["lang", string] = Language
+
+runOnKeys(Ply, 1, array("use"))
+Ply:printTo(Ply:getLocalizedString("item_received", table("X"=Ply:axeType()+" Axe")))
+
+local Tab = Players[Ply:steamID64(), table]
+Tab["rpname", string] = Ply:name()
+Ply:savePlayerData(Tab)
+}
+}
+
+Temp:removeEntity("save")
+stoptimer("createFile")
+}
+
+if(clk("respawn_nodes"))
+{
+loadResourceNodes()
+timer("respawn_nodes", Config["resourceRespawnTimer", number]*60000)
+}

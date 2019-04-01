@@ -1,0 +1,204 @@
+@name fCoin_Server
+@persist FCAccounts_Secure:gtable UTable:table
+@persist VerifyUser:entity VType Tab:table
+@persist ReqE2:entity
+
+runOnChat(1)
+
+if(first())
+{
+
+dsJoinGroup("fcoin_netgroup")
+dsSetScope(2)
+
+VType = 0
+
+gRemoveAll()
+
+FCAccounts_Secure = gTable("a781923f_fcoins", 0)
+
+# FCoin functions
+
+function resetCurUser() #Ignore this function.
+{
+UTable = table()
+}
+
+function number entity:accountExists()
+{
+UTable = FCAccounts_Secure[This:steamID(), table]
+
+if(UTable:exists("coins"))
+{
+resetCurUser()
+return 1
+}
+else
+{
+resetCurUser()
+return 0
+}
+}
+
+function entity:setupAccount()
+{
+FCAccounts_Secure[This:steamID(), table] = table()
+FCAccounts_Secure[This:steamID(), table]["coins", number] = 0
+}
+
+function number entity:getCoinValue()
+{
+if(This:accountExists())
+{
+return FCAccounts_Secure[This:steamID(), table]["coins", number]
+}
+else
+{
+return -1
+}
+}
+
+function entity:addCoinValue(Amount:number)
+{
+if(This:accountExists())
+{
+FCAccounts_Secure[This:steamID(), table]["coins", number] = This:getCoinValue() + Amount
+#print("Set "+This:name()+"'s coin value to "+FCAccounts_Secure[This:steamID(), table]["coins", number]+".")
+}
+else
+{
+This:setupAccount()
+FCAccounts_Secure[This:steamID(), table]["coins", number] = Amount
+#print("Set "+This:name()+"'s coin value to "+Amount+".")
+}
+}
+
+# FCoin Network
+
+function entity:nw_ChargeAccount(Amount:number, Charger:entity)
+{
+if(This!=Charger&&This:isPlayer())
+{
+if(This:accountExists())
+{
+if(This:getCoinValue()>=Amount)
+{
+This:addCoinValue(-Amount)
+Charger:addCoinValue(Amount)
+}
+}
+}
+}
+
+}
+
+if(dsClk()||dsClk("fcoin_net"))
+{
+if(dsGetType()=="table")
+{
+Tab = dsGetTable()
+if(Tab["request", number]==1)
+{
+if(Tab["r_ent", entity]:isPlayer())
+{
+
+local Return = "balance_"+Tab["r_ent", entity]:getCoinValue():toString()
+dsSendDirect("fcoin_net",dsGetSender(),Return)
+Tab = table()
+
+}
+}
+elseif(Tab["request", number]==2)
+{
+ReqE2 = dsGetSender()
+VerifyUser = Tab["r_ent", entity]
+
+if(VerifyUser:isPlayer())
+{
+
+VType = 1
+ReqE2:owner():sendMessage("Requesting to charge "+Tab["r_amount", number]+" fCoins from "+VerifyUser:name()+".")
+VerifyUser:sendMessage(ReqE2:owner():name()+" is requesting to charge "+Tab["r_amount", number]+" fCoins.")
+VerifyUser:sendMessage("Type !fyes to verify, !fno to decline.")
+VerifyUser:sendMessage("Will auto decline in 15 seconds.")
+timer("autodeny",15000)
+
+}
+}
+elseif(Tab["request", number]==3)
+{
+local Rec = Tab["r_ent", entity]
+local Sender = dsGetSender():owner()
+if(Sender!=Rec&&Rec:isPlayer())
+{
+if(Sender:getCoinValue()>=Tab["r_amount", number])
+{
+Sender:nw_ChargeAccount(Tab["r_amount", number], Rec)
+
+Rec:sendMessage("Received "+Tab["r_amount", number]+" fCoins from "+Sender:name()+".")
+Sender:sendMessage("Sent "+Tab["r_amount", number]+" fCoins to "+Rec:name()+".")
+}
+else
+{
+Sender:sendMessage("Insufficient coins. Cannot send to player.")
+}
+}
+else
+{
+Sender:sendMessage("Cannot send coins to yourself.")
+}
+}
+}
+}
+
+if(chatClk())
+{
+    
+if(owner():lastSaid():lower()=="!test"&&owner()==lastSpoke())
+{
+foreach(I, V:entity = players())
+{
+V:sendMessage("Testing - Here are 100 fCoins (will be reset, are not saved)")
+V:addCoinValue(100)
+}
+}
+    
+if(VerifyUser:lastSaid():lower()=="!fyes"&&VerifyUser==lastSpoke())
+{
+if(VType==1)
+{
+ReqE2:owner():sendMessage("User accepted your charge request. +"+Tab["r_amount", number]+" fCoins.")
+VerifyUser:sendMessage("You accepted the charge request. -"+Tab["r_amount", number]+" fCoins.")
+VerifyUser:nw_ChargeAccount(Tab["r_amount", number], ReqE2:owner())
+timer("accept",500)
+}
+}
+elseif(VerifyUser:lastSaid():lower()=="!fno")
+{
+stoptimer("autodeny")
+timer("autodeny",500)
+}
+}
+
+if(clk("autodeny"))
+{
+ReqE2:owner():sendMessage("Request timeout. Declined.")
+VerifyUser:sendMessage("Request timeout. Declined.")
+VType = 0
+Verifying = 0
+VerifyUser = noentity()
+Tab = table()
+ReqE2 = noentity()
+stoptimer("autodeny")
+}
+
+if(clk("accept"))
+{
+VType = 0
+Verifying = 0
+VerifyUser = noentity()
+Tab = table()
+ReqE2 = noentity()
+stoptimer("accept")
+}
+

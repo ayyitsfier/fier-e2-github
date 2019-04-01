@@ -1,0 +1,610 @@
+@persist [Players Banned]:table [Spawns TempSpawns]:array Game:number
+
+if(first())
+{
+
+runOnChat(1)
+runOnDeath(1)
+runOnSpawn(1)
+runOnDisconnect(1)
+runOnLast(1)
+
+Spawns = 
+array(
+vec(-3068.5,-3843,-185),
+vec(-1209.5,-3993,-185),
+vec(-951.5,-2786,-185),
+vec(-1732,-2881,-185),
+vec(-2397.5,-2813,-185),
+vec(-3116,-2751.5,-185)
+)
+
+Game = 0
+
+function entity:dmRealRespawn()
+{
+This:plyStripWeapons()
+This:plyStripAmmo()
+This:plySpawn()
+#print(This:name()+" was respawned to the actual map spawn.")
+}
+
+function number entity:dmIsBanned()
+{
+return (Banned:exists(This:steamID()) && This:isPlayer())
+}
+
+function number entity:dmGetValue()
+{
+if(!This:dmIsBanned())
+{
+return Players[This:steamID(), number]
+}
+return 0
+}
+
+function number entity:dmIsPlayer() # Player is either alive or in a lobby.
+{
+return (This:dmGetValue() > 0)
+}
+
+function number entity:dmIsAlive() # Player is alive in a match.
+{
+return (This:dmGetValue() == 1)
+}
+
+function number entity:dmIsInQueue() # Player isn't alive, but is in lobby.
+{
+return (This:dmGetValue() == 2)
+}
+
+function number entity:dmIsRespawning() # Player has died during the match and hasn't been respawned/teleported to lobby.
+{
+return (This:dmGetValue() == 3)
+}
+
+function entity:dmTell(Content:array)
+{
+if(This:dmIsPlayer())
+{
+if(This != owner())
+{
+This:sendMessageColor(Content)
+}
+}
+
+if(This == owner())
+{
+printColor(Content)
+}
+}
+
+function entity:dmTell(Text:string)
+{
+This:dmTell(array(vec(170,0,170),"[DEATHMATCH] ",vec(255,255,255),Text))
+}
+
+function dmAnnounce(Content:array)
+{
+foreach(I, V:entity = players())
+{
+V:dmTell(Content)
+}
+}
+
+function dmAnnounce(Text:string)
+{
+foreach(I, V:entity = players())
+{
+V:dmTell(Text)
+}
+}
+
+function number dmCount(Val:number)
+{
+local C = 0
+foreach(I, V:entity = players())
+{
+if(V:dmGetValue() == Val)
+{
+C = C + 1
+}
+}
+return C
+}
+
+function number dmCount(Val:string)
+{
+local Values = table()
+Values["alive", number] = 1
+Values["queue", number] = 2
+Values["respawning", number] = 3
+
+if(Values[Val, number])
+{
+return dmCount(Values[Val, number])
+}
+
+return 0
+}
+
+function number dmCount()
+{
+local C = 0
+C = C + (dmCount("alive") + dmCount("queue") + dmCount("respawning"))
+
+return C
+}
+
+function entity:dmSetPlayValue(Val:number)
+{
+Players[This:steamID(), number] = Val
+#print("Set "+This:steamID()+"'s value to "+Val)
+}
+
+function entity:dmSetAsAlive()
+{
+This:dmSetPlayValue(1)
+}
+
+function entity:dmSetAsQueued()
+{
+This:dmSetPlayValue(2)
+}
+
+function entity:dmSetAsRespawning()
+{
+This:dmSetPlayValue(3)
+}
+
+function entity:dmRemovePlayValue()
+{
+if(This:dmIsPlayer())
+{
+Players:removeNumber(This:steamID())
+#print("Removed "+This:steamID()+"'s value in the Players table.")
+}
+}
+
+function entity:dmSetAsBanned()
+{
+if(This:dmIsPlayer() && !This:dmIsBanned())
+{
+if(This:dmIsAlive())
+{
+This:dmRealRespawn()
+}
+This:dmRemovePlayValue()
+}
+Banned[This:steamID(), number] = 1
+}
+
+function entity:dmRemoveBan()
+{
+if(This:dmIsBanned())
+{
+Banned:removeNumber(This:steamID())
+}
+}
+
+function entity:dmSendToLobby()
+{
+if(This:dmIsInQueue() || This:dmIsRespawning())
+{
+
+local XMin = -3238
+local XMax = -861
+
+local YMin = -4516
+local YMax = -4206
+
+local Z = -193
+
+This:plyStripWeapons()
+local Pos = vec(randint(XMin,XMax),randint(YMin,YMax),Z)
+This:plySetPos(Pos)
+#print(This:name()+" was sent to the lobby.")
+}
+}
+
+function dmSendAllToLobby()
+{
+foreach(I, V:entity = players())
+{
+if(V:dmIsPlayer())
+{
+V:dmSendToLobby()
+}
+}
+}
+
+function entity dmGetLastAlive()
+{
+local Winner = noentity()
+if(Game == 1 && dmCount("alive") == 1)
+{
+foreach(I, V:entity = players())
+{
+if(V:dmIsAlive() && V:isAlive())
+{
+Winner = V
+break
+}
+}
+}
+return Winner
+}
+
+function dmHandleWin()
+{
+if(Game == 1 && dmCount("alive") == 1)
+{
+local Winner = dmGetLastAlive()
+
+if(Winner:dmIsPlayer())
+{
+dmAnnounce(Winner:name()+" is the last one alive. They win!")
+moneyGive(Winner, 2500)
+Winner:dmSetAsQueued()
+}
+}
+dmAnnounce("Nobody survived, somehow. No one wins!")
+dmSendAllToLobby()
+
+Game = 0
+}
+
+function entity:dmHandleDeath()
+{
+if(This:dmIsPlayer())
+{
+if(This:dmIsAlive() && Game == 1)
+{
+dmAnnounce(This:name()+" has been eliminated!")
+dmHandleWin()
+}
+
+This:plySpawn()
+}
+}
+
+function entity:dmChooseSpawn()
+{
+local Spawnpoint = randint(1, TempSpawns:count())
+local SpawnPos = TempSpawns[Spawnpoint, vector]
+This:plySetPos(SpawnPos)
+This:plyFreeze(1)
+TempSpawns:removeVector(Spawnpoint)
+}
+
+function entity:dmSpawnPlayer()
+{
+This:dmChooseSpawn()
+This:dmSetAsAlive()
+This:plyGive("fas2_ragingbull")
+This:plySetClip1(15000)
+This:plySetHealth(150)
+}
+
+function dmSpawnPlayers()
+{
+foreach(I, V:entity = players())
+{
+if(V:dmIsInQueue() && V:isAlive() && Game == 1)
+{
+V:dmSpawnPlayer()
+}
+}
+}
+
+function dmResetSpawns()
+{
+TempSpawns = array()
+TempSpawns = Spawns
+}
+
+function dmStartGame()
+{
+if(Game != 1 && dmCount() >= 2)
+{
+Game = 1
+dmResetSpawns()
+dmSpawnPlayers()
+timer("Match_Start", 2000)
+}
+}
+
+function dmForceGameEnd()
+{
+if(Game == 1)
+{
+Game = 0
+
+foreach(I, V:entity = players())
+{
+if(V:dmIsPlayer())
+{
+V:dmSetAsQueued()
+V:dmSendToLobby()
+V:plyFreeze(0)
+}
+}
+}
+}
+
+function dmForceGameStart()
+{
+if(Game != 1)
+{
+Game = 1
+dmResetSpawns()
+dmSpawnPlayers()
+timer("Match_Start", 2000)
+}
+}
+
+function entity dmFindPlayerByString(Val:string)
+{
+local Return = noentity()
+if(Val != "")
+{
+if(Val:find("STEAM_0:"))
+{
+Return = findPlayerBySteamID(Val)
+}
+else
+{
+Return = findPlayerByName(Val)
+}
+}
+return Return
+}
+
+}
+
+if(last())
+{
+
+foreach(I, V:entity = players()) {
+if(Players:exists(V:steamID()))
+{
+V:plyFreeze(0)
+V:dmRealRespawn()
+}
+
+}
+
+}
+
+if(disconnectClk())
+{
+
+local Disc = lastDisconnectedPlayer()
+Disc:dmRemovePlayValue()
+
+}
+
+if(chatClk())
+{
+
+local Msg = lastSaid()
+local P = lastSpoke()
+if(Msg:lower() == "!joindm")
+{
+dmAnnounce(P:name()+" joined the queue.")
+P:dmSetAsQueued()
+P:dmSendToLobby()
+P:dmTell(array(vec(0,255,0), "You joined the Deathmatch. A match will be starting soon if not already. You can leave with !leavedm."))
+}
+
+if(Msg:lower() == "!leavedm")
+{
+if(P:dmIsInQueue())
+{
+dmAnnounce(P:name()+" left the queue.")
+P:dmTell(array(vec(0,255,0), "You left the Deathmatch. See you later!"))
+P:dmRemovePlayValue()
+P:dmRealRespawn()
+}
+}
+
+}
+
+if(chatClk(owner()))
+{
+
+local Msg = lastSaid()
+local P = lastSpoke()
+if(P == owner() && Msg:lower() == "!startdm")
+{
+dmAnnounce("The game was force-started by host.")
+dmForceGameStart()
+}
+
+if(P == owner() && Msg:lower() == "!enddm")
+{
+dmAnnounce("The game was force-ended by host.")
+dmForceGameEnd()
+}
+
+if(P == owner() && Msg:lower():find("!kickdm"))
+{
+local Args = Msg:explode(" ")
+
+if(Args[1, string]:lower() == "!kickdm")
+{
+hideChat(1)
+local Input = Args[2, string]
+local Target = dmFindPlayerByString(Input)
+
+if(Target:isPlayer())
+{
+if(Target:dmIsPlayer())
+{
+Target:dmTell(array(vec(0,255,255), "You were kicked from the Deathmatch by the host. You're still able to join back."))
+Target:dmSetPlayValue(10)
+timer("Handle_Kicks", 150)
+}
+else
+{
+printColor(vec(255,0,0), "[ERROR] ", vec(0,255,255), "'"+Input+"'", vec(255,255,255), " is not in queue or playing Deathmatch.")
+}
+}
+else
+{
+printColor(vec(255,0,0), "[ERROR]", vec(0,255,255), "'"+Input+"'", vec(255,255,255), " is not a player currently connected to the server.")
+}
+}
+}
+
+if(P == owner() && Msg:lower():find("!bandm"))
+{
+local Args = Msg:explode(" ")
+
+if(Args[1, string]:lower() == "!bandm")
+{
+hideChat(1)
+local Input = Args[2, string]
+local Target = dmFindPlayerByString(Input)
+
+if(Target:isPlayer())
+{
+if(Target:dmIsPlayer())
+{
+Target:dmRealRespawn()
+}
+
+Target:dmSetPlayValue(2)
+Target:dmTell(array(vec(0,255,255), "You have been temporarily banned from the Deathmatch by the host."))
+Target:dmRemovePlayValue()
+Target:dmSetAsBanned()
+dmAnnounce(array(vec(0,255,255), "Host temporarily banned ", vec(255,0,0), Target:name(), vec(0,255,255), " from the Deathmatch."))
+#Target:sendMessageColor(vec(0,255,255), "You have been temporarily banned from Deathmatch by the host.")
+
+printColor(vec(0,255,255), "You banned ", vec(255,0,0), Target:name(), vec(0,255,255), " from joining the Deathmatch.")
+}
+else
+{
+printColor(vec(255,0,0), "[ERROR] ", vec(0,255,255), "'"+Input+"'", vec(255,255,255), " is not a player currently connected to the server.")
+}
+}
+}
+
+if(P == owner() && Msg:lower():find("!unbandm"))
+{
+local Args = Msg:explode(" ")
+
+if(Args[1, string]:lower() == "!unbandm")
+{
+hideChat(1)
+local Input = Args[2, string]
+local Target = dmFindPlayerByString(Input)
+
+if(Target:isPlayer())
+{
+Target:dmRemoveBan()
+Target:dmSetPlayValue(2)
+Target:dmTell(array(vec(0,255,255), "You have been unbanned from Deathmatch by the host."))
+Target:dmRemovePlayValue()
+dmAnnounce(array(vec(0,255,255), "Host unbanned ", vec(255,0,0), Target:name(), vec(0,255,255), " from Deathmatch."))
+printColor(vec(0,255,255), "You unbanned ", vec(255,0,0), Target:name(), vec(0,255,255), " from Deathmatch.")
+}
+else
+{
+printColor(vec(255,0,0), "[ERROR] ", vec(0,255,255), "'"+Input+"'", vec(255,255,255), " is not a player currently connected to the server.")
+}
+}
+
+}
+
+}
+
+if(deathClk())
+{
+
+local Dead = lastDeath()
+
+if(Dead:dmIsAlive() && !Dead:isAlive())
+{
+local Killer = lastDeathAttacker()
+Dead:dmTell("You were eliminated by "+Killer:name()+"!")
+}
+
+timer("Handle_Deaths", 1500)
+}
+
+if(spawnClk())
+{
+
+local Dead = lastSpawnedPlayer()
+
+if(Dead:dmIsPlayer())
+{
+Dead:dmSetAsRespawning()
+timer("Handle_Respawns", 150)
+}
+
+if(Dead:dmIsRespawning())
+{
+timer("Handle_Respawns", 150)
+}
+
+}
+
+if(clk("Handle_Respawns"))
+{
+
+foreach(I, V:entity = players())
+{
+if(V:dmIsRespawning())
+{
+V:dmSendToLobby()
+V:dmSetAsQueued()
+}
+}
+stoptimer("Handle_Respawns")
+
+}
+
+if(clk("Handle_Deaths"))
+{
+
+foreach(I, V:entity = players())
+{
+if(V:dmIsPlayer())
+{
+V:dmHandleDeath()
+}
+}
+
+}
+
+if(clk("Handle_Kicks"))
+{
+
+foreach(I, V:entity = players())
+{
+if(V:dmGetValue() == 10)
+{
+V:dmRemovePlayValue()
+V:dmRealRespawn()
+dmAnnounce(array(vec(0,255,255), "Host kicked ", vec(255,0,0), V:name(), vec(0,255,255), " from the Deathmatch."))
+}
+}
+
+}
+
+if(clk("Match_Start"))
+{
+
+
+dmAnnounce("Round started!")
+foreach(I, V:entity = players())
+{
+if(V:dmIsAlive())
+{
+V:plyFreeze(0)
+}
+}
+
+}

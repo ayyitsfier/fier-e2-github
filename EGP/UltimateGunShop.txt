@@ -1,0 +1,1303 @@
+@name fGShop Ultimate
+@inputs E:wirelink User:entity
+@persist GData:table Page
+@persist TSold TMon
+@persist Credits:table CrArray:array
+
+runOnChat(1)
+runOnFile(1)
+
+if(first())
+{
+
+# No longer using the old EGP framework, will eventually get to developing a newer, better looking one.
+
+# # # # EEGGPP AASSEETTSS # # # #
+
+# EGP Button
+
+function number wirelink:egpButtonClk(I:number,E:entity)
+{
+local Pos = This:egpPos(I)
+local Size = This:egpSize(I)
+local VecMin = Pos - (Size / 2)
+local VecMax = Pos + (Size / 2)
+            
+if (inrange(This:egpCursor(E),VecMin,VecMax))
+{
+return 1
+}
+else
+{
+return 0
+}
+}
+
+# EGP Cursor
+
+function wirelink:egpCrCursor()
+{
+This:egpCircle(400, vec2(), vec2(3,3))
+This:egpColor(400, vec4(70,70,200,255))
+This:egpParentToCursor(400)
+
+This:egpText(401, "This is a touchscreen. Aim and press your USE key on a button on the screen.", vec2(256,500)),This:egpAlign(401,1,1),This:egpSize(401,15)
+}
+
+# # # # EEGGPP - OOTTHHEERR # # # #
+
+# Idle page
+
+function noUser()
+{
+
+stoptimer("idle")
+Page = 1
+GData["lastPlayer", entity] = noentity()
+E:egpClear()
+
+E:egpBox(1, vec2(), vec2(1200, 1200))
+E:egpColor(1, vec(90,20,20))
+E:egpMaterial(1, "gui/gradient_up")
+
+E:egpText(2, "Fier's Gun Shop", vec2(256,135))
+E:egpSize(2,35)
+E:egpAlign(2,1,1)
+
+E:egpBox(4, vec2(256, 320), vec2(162, 50))
+E:egpColor(4, vec(80,45,45))
+
+E:egpText(5, "Continue", vec2(0,0))
+E:egpSize(5, 32)
+E:egpAlign(5, 1, 1)
+E:egpParent(5, 4)
+
+E:egpCrCursor() # needs to be created at the END of the function #
+
+}
+
+function storeHome()
+{
+
+stoptimer("idle")
+timer("idle", 10000)
+Page = 2
+E:egpClear()
+
+E:egpBox(1, vec2(), vec2(1200, 1200))
+E:egpColor(1, vec(90,20,20))
+E:egpMaterial(1, "gui/gradient_up")
+
+E:egpText(2, "Main Menu", vec2(256,30))
+E:egpSize(2,30)
+E:egpAlign(2,1,1)
+
+# Menu Buttons
+
+E:egpCircle(100, vec2(108,256), vec2(60,60))
+E:egpColor(100, vec(80,45,45))
+E:egpText(4, "Weapons", vec2(0,0))
+E:egpParent(4,100)
+E:egpAlign(4,1,1)
+
+E:egpCircle(101, vec2(256,256), vec2(60,60))
+E:egpColor(101, vec(80,45,45))
+E:egpText(6, "Attachments", vec2(0,0))
+E:egpParent(6,101)
+E:egpAlign(6,1,1)
+
+E:egpCircle(102, vec2(404,256), vec2(60,60))
+E:egpColor(102, vec(80,45,45))
+E:egpText(8, "Store Stats", vec2(0,0))
+E:egpParent(8,102)
+E:egpAlign(8,1,1)
+
+E:egpBox(35, vec2(256, 425), vec2(180, 50))
+E:egpColor(35, vec(80,45,45))
+
+E:egpText(36, "Leave Store", vec2(0,0))
+E:egpSize(36, 32)
+E:egpAlign(36, 1, 1)
+E:egpParent(36, 35)
+
+E:egpCrCursor() # needs to be created at the END of the function #
+
+}
+
+function storePage(Type:string)
+{
+
+stoptimer("idle")
+E:egpClear()
+
+E:egpBox(1, vec2(), vec2(1200, 1200))
+E:egpColor(1, vec(90,20,20))
+E:egpMaterial(1, "gui/gradient_up")
+
+E:egpText(2, "storeType", vec2(256, 30))
+E:egpSize(2,30)
+E:egpAlign(2,1,1)
+
+E:egpCircle(3, vec2(108,168), vec2(70,70))
+E:egpColor(3, vec(80,45,45))
+E:egpText(4, "7 in stock", vec2(0,-15)),E:egpParent(4,3),E:egpAlign(4,1,1)
+E:egpText(5, "Desert Eagle", vec2(0,0)),E:egpParent(5,3),E:egpAlign(5,1,1)
+E:egpText(6, "$700 each", vec2(0,15)),E:egpParent(6,3),E:egpAlign(6,1,1)
+
+E:egpCircle(7, vec2(256,168), vec2(70,70))
+E:egpColor(7, vec(80,45,45))
+E:egpText(8, "2 in stock", vec2(0,-15)),E:egpParent(8,7),E:egpAlign(8,1,1)
+E:egpText(9, "AK-47", vec2(0,0)),E:egpParent(9,7),E:egpAlign(9,1,1)
+E:egpText(10, "$1200 each", vec2(0,15)),E:egpParent(10,7),E:egpAlign(10,1,1)
+
+E:egpCircle(11, vec2(404,168), vec2(70,70))
+E:egpColor(11, vec(80,45,45))
+E:egpText(12, "Infinite stock", vec2(0,-15)),E:egpParent(12,11),E:egpAlign(12,1,1)
+E:egpText(13, "Store Donation", vec2(0,0)),E:egpParent(13,11),E:egpAlign(13,1,1)
+E:egpText(14, "$1 each", vec2(0,15)),E:egpParent(14,11),E:egpAlign(14,1,1)
+
+
+#####
+##########
+#####
+
+
+E:egpCircle(15, vec2(108,324), vec2(70,70))
+E:egpColor(15, vec(80,45,45))
+E:egpText(16, "1 in stock", vec2(0,-15)),E:egpParent(16,15),E:egpAlign(16,1,1)
+E:egpText(17, "Half-Life 3", vec2(0,0)),E:egpParent(17,15),E:egpAlign(17,1,1)
+E:egpText(18, "$600,000 each", vec2(0,15)),E:egpParent(18,15),E:egpAlign(18,1,1)
+
+E:egpCircle(19, vec2(256,324), vec2(70,70))
+E:egpColor(19, vec(80,45,45))
+E:egpText(20, "17 in stock", vec2(0,-15)),E:egpParent(20,19),E:egpAlign(20,1,1)
+E:egpText(21, "M3 Super 90", vec2(0,0)),E:egpParent(21,19),E:egpAlign(21,1,1)
+E:egpText(22, "$725 each", vec2(0,15)),E:egpParent(22,19),E:egpAlign(22,1,1)
+
+E:egpCircle(23, vec2(404,324), vec2(70,70))
+E:egpColor(23, vec(80,45,45))
+E:egpText(24, "Infinite stock", vec2(0,-15)),E:egpParent(24,23),E:egpAlign(24,1,1)
+E:egpText(25, "Bigger Donation", vec2(0,0)),E:egpParent(25,23),E:egpAlign(25,1,1)
+E:egpText(26, "$1000 each", vec2(0,15)),E:egpParent(26,23),E:egpAlign(26,1,1)
+
+E:egpBox(35, vec2(256, 425), vec2(180, 50))
+E:egpColor(35, vec(80,45,45))
+
+E:egpText(36, "Back to Menu", vec2(0,0))
+E:egpSize(36, 32)
+E:egpAlign(36, 1, 1)
+E:egpParent(36, 35)
+
+if(Type=="guns")
+{
+Page = 3
+E:egpSetText(2, "Single Weapons")
+
+local Amount1 = GData["gslot1_amt", number]
+local Name1 = GData["gslot1", string]
+local Price1 = GData["gslot1_p", number]
+
+if(GData:exists("gslot1"))
+{
+E:egpSetText(4, Amount1+" in stock")
+E:egpSetText(5, Name1)
+E:egpSetText(6, "$"+Price1+" each")
+
+E:egpAlpha(4, 255)
+E:egpAlpha(6, 255)
+}
+elseif(!GData:exists("gslot1"))
+{
+E:egpSetText(4, "Nothing in stock")
+E:egpSetText(5, "Nothing in stock")
+E:egpSetText(6, "nil")
+
+E:egpAlpha(4, 0)
+E:egpAlpha(6, 0)
+}
+
+local Amount2 = GData["gslot2_amt", number]
+local Name2 = GData["gslot2", string]
+local Price2 = GData["gslot2_p", number]
+
+if(GData:exists("gslot2"))
+{
+E:egpSetText(8, Amount2+" in stock")
+E:egpSetText(9, Name2)
+E:egpSetText(10, "$"+Price2+" each")
+
+E:egpAlpha(8, 255)
+E:egpAlpha(10, 255)
+}
+elseif(!GData:exists("gslot2"))
+{
+E:egpSetText(8, "Nothing in stock")
+E:egpSetText(9, "Nothing in stock")
+E:egpSetText(10, "nil")
+
+E:egpAlpha(8, 0)
+E:egpAlpha(10, 0)
+}
+
+local Amount3 = GData["gslot3_amt", number]
+local Name3 = GData["gslot3", string]
+local Price3 = GData["gslot3_p", number]
+
+if(GData:exists("gslot3"))
+{
+E:egpSetText(12, Amount3+" in stock")
+E:egpSetText(13, Name3)
+E:egpSetText(14, "$"+Price3+" each")
+
+E:egpAlpha(12, 255)
+E:egpAlpha(14, 255)
+}
+elseif(!GData:exists("gslot3"))
+{
+E:egpSetText(12, "Nothing in stock")
+E:egpSetText(13, "Nothing in stock")
+E:egpSetText(14, "nil")
+
+E:egpAlpha(12, 0)
+E:egpAlpha(14, 0)
+}
+
+local Amount4 = GData["gslot4_amt", number]
+local Name4 = GData["gslot4", string]
+local Price4 = GData["gslot4_p", number]
+
+if(GData:exists("gslot4"))
+{
+E:egpSetText(16, Amount4+" in stock")
+E:egpSetText(17, Name4)
+E:egpSetText(18, "$"+Price4+" each")
+
+E:egpAlpha(16, 255)
+E:egpAlpha(18, 255)
+}
+elseif(!GData:exists("gslot4"))
+{
+E:egpSetText(16, "Nothing in stock")
+E:egpSetText(17, "Nothing in stock")
+E:egpSetText(18, "nil")
+
+E:egpAlpha(16, 0)
+E:egpAlpha(18, 0)
+}
+
+local Amount5 = GData["gslot5_amt", number]
+local Name5 = GData["gslot5", string]
+local Price5 = GData["gslot5_p", number]
+
+if(GData:exists("gslot5"))
+{
+E:egpSetText(20, Amount5+" in stock")
+E:egpSetText(21, Name5)
+E:egpSetText(22, "$"+Price5+" each")
+
+E:egpAlpha(20, 255)
+E:egpAlpha(22, 255)
+}
+elseif(!GData:exists("gslot5"))
+{
+E:egpSetText(20, "Nothing in stock")
+E:egpSetText(21, "Nothing in stock")
+E:egpSetText(22, "nil")
+
+E:egpAlpha(20, 0)
+E:egpAlpha(22, 0)
+}
+
+local Amount6 = GData["gslot6_amt", number]
+local Name6 = GData["gslot6", string]
+local Price6 = GData["gslot6_p", number]
+
+if(GData:exists("gslot6"))
+{
+E:egpSetText(24, Amount6+" in stock")
+E:egpSetText(25, Name6)
+E:egpSetText(26, "$"+Price6+" each")
+
+E:egpAlpha(24, 255)
+E:egpAlpha(26, 255)
+}
+elseif(!GData:exists("gslot6"))
+{
+E:egpSetText(24, "Nothing in stock")
+E:egpSetText(25, "Nothing in stock")
+E:egpSetText(26, "nil")
+
+E:egpAlpha(24, 0)
+E:egpAlpha(26, 0)
+}
+
+}
+elseif(Type=="attach")
+{
+Page = 4
+E:egpSetText(2, "Attachments")
+
+local Amount1 = GData["aslot1_amt", number]
+local Name1 = GData["aslot1", string]
+local Price1 = GData["aslot1_p", number]
+
+if(GData:exists("aslot1"))
+{
+E:egpSetText(4, Amount1+" in stock")
+E:egpSetText(5, Name1)
+E:egpSetText(6, "$"+Price1+" each")
+
+E:egpAlpha(4, 255)
+E:egpAlpha(6, 255)
+}
+elseif(!GData:exists("aslot1"))
+{
+E:egpSetText(4, "Nothing in stock")
+E:egpSetText(5, "Nothing in stock")
+E:egpSetText(6, "nil")
+
+E:egpAlpha(4, 0)
+E:egpAlpha(6, 0)
+}
+
+local Amount2 = GData["aslot2_amt", number]
+local Name2 = GData["aslot2", string]
+local Price2 = GData["aslot2_p", number]
+
+if(GData:exists("aslot2"))
+{
+E:egpSetText(8, Amount2+" in stock")
+E:egpSetText(9, Name2)
+E:egpSetText(10, "$"+Price2+" each")
+
+E:egpAlpha(8, 255)
+E:egpAlpha(10, 255)
+}
+elseif(!GData:exists("aslot2"))
+{
+E:egpSetText(8, "Nothing in stock")
+E:egpSetText(9, "Nothing in stock")
+E:egpSetText(10, "nil")
+
+E:egpAlpha(8, 0)
+E:egpAlpha(10, 0)
+}
+
+local Amount3 = GData["aslot3_amt", number]
+local Name3 = GData["aslot3", string]
+local Price3 = GData["aslot3_p", number]
+
+if(GData:exists("aslot3"))
+{
+E:egpSetText(12, Amount3+" in stock")
+E:egpSetText(13, Name3)
+E:egpSetText(14, "$"+Price3+" each")
+
+E:egpAlpha(12, 255)
+E:egpAlpha(14, 255)
+}
+elseif(!GData:exists("aslot3"))
+{
+E:egpSetText(12, "Nothing in stock")
+E:egpSetText(13, "Nothing in stock")
+E:egpSetText(14, "nil")
+
+E:egpAlpha(12, 0)
+E:egpAlpha(14, 0)
+}
+
+local Amount4 = GData["aslot4_amt", number]
+local Name4 = GData["aslot4", string]
+local Price4 = GData["aslot4_p", number]
+
+if(GData:exists("aslot4"))
+{
+E:egpSetText(16, Amount4+" in stock")
+E:egpSetText(17, Name4)
+E:egpSetText(18, "$"+Price4+" each")
+
+E:egpAlpha(16, 255)
+E:egpAlpha(18, 255)
+}
+elseif(!GData:exists("aslot4"))
+{
+E:egpSetText(16, "Nothing in stock")
+E:egpSetText(17, "Nothing in stock")
+E:egpSetText(18, "nil")
+
+E:egpAlpha(16, 0)
+E:egpAlpha(18, 0)
+}
+
+local Amount5 = GData["aslot5_amt", number]
+local Name5 = GData["aslot5", string]
+local Price5 = GData["aslot5_p", number]
+
+if(GData:exists("aslot5"))
+{
+E:egpSetText(20, Amount5+" in stock")
+E:egpSetText(21, Name5)
+E:egpSetText(22, "$"+Price5+" each")
+
+E:egpAlpha(20, 255)
+E:egpAlpha(22, 255)
+}
+elseif(!GData:exists("aslot5"))
+{
+E:egpSetText(20, "Nothing in stock")
+E:egpSetText(21, "Nothing in stock")
+E:egpSetText(22, "nil")
+
+E:egpAlpha(20, 0)
+E:egpAlpha(22, 0)
+}
+
+local Amount6 = GData["aslot6_amt", number]
+local Name6 = GData["aslot6", string]
+local Price6 = GData["aslot6_p", number]
+
+if(GData:exists("aslot6"))
+{
+E:egpSetText(24, Amount6+" in stock")
+E:egpSetText(25, Name6)
+E:egpSetText(26, "$"+Price6+" each")
+
+E:egpAlpha(24, 255)
+E:egpAlpha(26, 255)
+}
+elseif(!GData:exists("aslot6"))
+{
+E:egpSetText(24, "Nothing in stock")
+E:egpSetText(25, "Nothing in stock")
+E:egpSetText(26, "nil")
+
+E:egpAlpha(24, 0)
+E:egpAlpha(26, 0)
+}
+
+}
+
+E:egpCrCursor()
+
+}
+
+function saveStats()
+{
+if(fileCanWrite())
+{
+local Table = table()
+Table["store", string] = "ult"
+Table["gunSold", number] = TSold
+Table["monEarn", number] = TMon
+fileWrite("fgshop_new/stats.txt", jsonEncode(Table, 0))   
+}
+}
+
+function loadStats()
+{
+if(fileCanLoad())
+{
+#print("Should have loaded here.")
+fileLoad("fgshop_new/stats.txt")
+}
+}
+
+function storeStats()
+{
+    
+Page = 5
+
+E:egpClear()
+
+E:egpBox(1, vec2(), vec2(1200, 1200))
+E:egpColor(1, vec(90,20,20))
+E:egpMaterial(1, "gui/gradient_up")
+
+E:egpText(2, "Gun Shop Stats", vec2(256,100))
+E:egpSize(2,35)
+E:egpAlign(2,1,1)
+
+E:egpBox(3, vec2(256,256), vec2(256,256))
+E:egpAlpha(3, 0)
+E:egpText(4, "Guns sold: "+TSold, vec2(0,-15))
+E:egpSize(4, 25)
+E:egpAlign(4,1,1)
+E:egpParent(4,3)
+
+E:egpText(5, "Money Earned: $"+TMon, vec2(0,15))
+E:egpSize(5, 25)
+E:egpAlign(5,1,1)
+E:egpParent(5,3)
+
+E:egpText(6, "Money earned is not a seperation of profit/total earnings", vec2(0,60))
+E:egpSize(6, 20)
+E:egpAlign(6,1,1)
+E:egpParent(6,3)
+
+E:egpBox(35, vec2(256, 425), vec2(180, 50))
+E:egpColor(35, vec(80,45,45))
+
+E:egpText(36, "Back to Menu", vec2(0,0))
+E:egpSize(36, 32)
+E:egpAlign(36, 1, 1)
+E:egpParent(36, 35)
+
+E:egpCrCursor()
+}
+
+noUser()
+#storeHome()
+
+loadStats()
+
+}
+
+if(chatClk(owner()))
+{
+if(owner():lastSaid():lower()=="ship")
+{
+hideChat(1)
+local Shipment = owner():aimEntity()
+if(Shipment:isShipment()&Shipment:isValid())
+{
+if(!GData:exists("gslot1"))
+{
+print("Slot 1 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["gslot1", string] = Shipment:shipmentName()
+GData["gslot1_c", string] = Shipment:shipmentType()
+GData["gslot1_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["gslot1_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("gslot2"))
+{
+print("Slot 2 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["gslot2", string] = Shipment:shipmentName()
+GData["gslot2_c", string] = Shipment:shipmentType()
+GData["gslot2_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["gslot2_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("gslot3"))
+{
+print("Slot 3 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["gslot3", string] = Shipment:shipmentName()
+GData["gslot3_c", string] = Shipment:shipmentType()
+GData["gslot3_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["gslot3_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("gslot4"))
+{
+print("Slot 4 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["gslot4", string] = Shipment:shipmentName()
+GData["gslot4_c", string] = Shipment:shipmentType()
+GData["gslot4_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["gslot4_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("gslot5"))
+{
+print("Slot 5 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["gslot5", string] = Shipment:shipmentName()
+GData["gslot5_c", string] = Shipment:shipmentType()
+GData["gslot5_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["gslot5_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("gslot6"))
+{
+print("Slot 6 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["gslot6", string] = Shipment:shipmentName()
+GData["gslot6_c", string] = Shipment:shipmentType()
+GData["gslot6_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["gslot6_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(GData:exists("gslot6"))
+{
+print("All weapon slots are full!")
+}
+}
+}
+
+if(owner():lastSaid():lower()=="attach")
+{
+hideChat(1)
+local Shipment = owner():aimEntity()
+if(Shipment:isShipment()&Shipment:isValid())
+{
+if(!GData:exists("aslot1"))
+{
+print("Slot 1 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["aslot1", string] = Shipment:shipmentName()
+GData["aslot1_c", string] = Shipment:shipmentType()
+GData["aslot1_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["aslot1_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("aslot2"))
+{
+print("Slot 2 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["aslot2", string] = Shipment:shipmentName()
+GData["aslot2_c", string] = Shipment:shipmentType()
+GData["aslot2_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["aslot2_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("aslot3"))
+{
+print("Slot 3 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["aslot3", string] = Shipment:shipmentName()
+GData["aslot3_c", string] = Shipment:shipmentType()
+GData["aslot3_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["aslot3_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("aslot4"))
+{
+print("Slot 4 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["aslot4", string] = Shipment:shipmentName()
+GData["aslot4_c", string] = Shipment:shipmentType()
+GData["aslot4_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["aslot4_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("aslot5"))
+{
+print("Slot 5 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["aslot5", string] = Shipment:shipmentName()
+GData["aslot5_c", string] = Shipment:shipmentType()
+GData["aslot5_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["aslot5_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+elseif(!GData:exists("aslot6"))
+{
+print("Slot 6 should now hold "+Shipment:shipmentAmount()+" "+Shipment:shipmentName()+"s.")
+GData["aslot6", string] = Shipment:shipmentName()
+GData["aslot6_c", string] = Shipment:shipmentType()
+GData["aslot6_p", number] = (Shipment:shipmentPrice()/5) + ((Shipment:shipmentPrice()/5)*0.2) #20% profit.
+GData["aslot6_amt", number] = Shipment:shipmentAmount()
+Shipment:propDelete()
+}
+if(GData:exists("aslot6"))
+{
+print("All attachment slots are full!")
+}
+}
+}
+
+if(owner():lastSaid():lower()=="!idle")
+{
+hideChat(1)
+noUser()
+}
+}
+
+
+### EGP BUTTONS AND MONEY REQUESTS ###
+
+if(changed(E:egpButtonClk(3,User))&&E:egpButtonClk(3,User))
+{
+if(Page==3)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("gslot1"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["gslot1_p", number]-(UCredits*15),"gs1") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["gslot1_p", number],"gs1")
+}
+}
+}
+}
+elseif(Page==4)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("aslot1"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["aslot1_p", number]-(UCredits*15),"as1") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["aslot1_p", number],"as1")
+}
+}
+}
+}
+}
+
+if(changed(E:egpButtonClk(7,User))&&E:egpButtonClk(7,User))
+{
+if(Page==3)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("gslot2"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["gslot2_p", number]-(UCredits*15),"gs2") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["gslot2_p", number],"gs2")
+}
+}
+}
+}
+elseif(Page==4)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("aslot2"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["aslot2_p", number]-(UCredits*15),"as2") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["aslot2_p", number],"as2")
+}
+}
+}
+}
+}
+
+if(changed(E:egpButtonClk(11,User))&&E:egpButtonClk(11,User))
+{
+if(Page==3)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("gslot3"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["gslot3_p", number]-(UCredits*15),"gs3") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["gslot3_p", number],"gs3")
+}
+}
+}
+}
+elseif(Page==4)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("aslot3"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["aslot3_p", number]-(UCredits*15),"as3") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["aslot3_p", number],"as3")
+}
+}
+}
+}
+}
+
+if(changed(E:egpButtonClk(15,User))&&E:egpButtonClk(15,User))
+{
+if(Page==3)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("gslot4"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["gslot4_p", number]-(UCredits*15),"gs4") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["gslot4_p", number],"gs4")
+}
+}
+}
+}
+elseif(Page==4)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("aslot4"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["aslot4_p", number]-(UCredits*15),"as4") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["aslot4_p", number],"as4")
+}
+}
+}
+}
+}
+
+if(changed(E:egpButtonClk(19,User))&&E:egpButtonClk(19,User))
+{
+if(Page==3)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("gslot5"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["gslot5_p", number]-(UCredits*15),"gs5") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["gslot5_p", number],"gs5")
+}
+}
+}
+}
+elseif(Page==4)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("aslot5"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["aslot5_p", number]-(UCredits*15),"as5") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["aslot5_p", number],"as5")
+}
+}
+}
+}
+}
+
+if(changed(E:egpButtonClk(23,User))&&E:egpButtonClk(23,User))
+{
+if(Page==3)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("gslot6"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["gslot6_p", number]-(UCredits*15),"gs6") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["gslot6_p", number],"gs6")
+}
+}
+}
+}
+elseif(Page==4)
+{
+if(User==GData["lastPlayer", entity])
+{
+if(GData:exists("aslot6"))
+{
+if(Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]>0)
+{
+local UCredits = Credits[GData["lastPlayer", entity]:steamID(), table]["credits", number]
+moneyRequest(GData["lastPlayer", entity],GData["aslot6_p", number]-(UCredits*15),"as6") 
+}
+else
+{
+moneyRequest(GData["lastPlayer", entity],GData["aslot6_p", number],"as6")
+}
+}
+}
+}
+}
+
+if(E:egpButtonClk(4,User))
+{
+if(Page==1)
+{
+GData["lastPlayer", entity] = User
+storeHome()
+}
+}
+
+if(changed(E:egpButtonClk(35,User))&&E:egpButtonClk(35,User))
+{
+if(Page==3|Page==4|Page==5)
+{
+if(User==GData["lastPlayer", entity])
+{
+storeHome()
+}
+}
+elseif(Page==2)
+{
+if(User==GData["lastPlayer", entity])
+{
+noUser()
+}
+}
+}
+
+if(changed(E:egpButtonClk(100,User))&&E:egpButtonClk(100,User))
+{
+if(Page==2)
+{
+if(User==GData["lastPlayer", entity])
+{
+storePage("guns")
+}
+}
+}
+
+if(changed(E:egpButtonClk(101,User))&&E:egpButtonClk(101,User))
+{
+if(Page==2)
+{
+if(User==GData["lastPlayer", entity])
+{
+storePage("attach")
+}
+}
+}
+
+if(changed(E:egpButtonClk(102,User))&&E:egpButtonClk(102,User))
+{
+if(Page==2)
+{
+if(User==GData["lastPlayer", entity])
+{
+storeStats()
+}
+}
+}
+
+########
+########
+########
+
+if(moneyClk("gs1"))
+{
+GData["lastPlayer", entity]:plyGive(GData["gslot1_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["gslot1_amt", number] = GData["gslot1_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["gslot1_p", number])
+timer("saveStats",250)
+
+if(GData["gslot1_amt", number]==0)
+{
+GData:removeString("gslot1_c")
+GData:removeString("gslot1")
+GData:removeNumber("gslot1_amt")
+GData:removeNumber("gslot1_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("gs2"))
+{
+GData["lastPlayer", entity]:plyGive(GData["gslot2_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["gslot2_amt", number] = GData["gslot2_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["gslot2_p", number])
+timer("saveStats",250)
+
+if(GData["gslot2_amt", number]==0)
+{
+GData:removeString("gslot2_c")
+GData:removeString("gslot2")
+GData:removeNumber("gslot2_amt")
+GData:removeNumber("gslot2_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("gs3"))
+{
+GData["lastPlayer", entity]:plyGive(GData["gslot3_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["gslot3_amt", number] = GData["gslot3_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["gslot3_p", number])
+timer("saveStats",250)
+
+if(GData["gslot3_amt", number]==0)
+{
+GData:removeString("gslot3_c")
+GData:removeString("gslot3")
+GData:removeNumber("gslot3_amt")
+GData:removeNumber("gslot3_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("gs4"))
+{
+GData["lastPlayer", entity]:plyGive(GData["gslot4_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["gslot4_amt", number] = GData["gslot4_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["gslot4_p", number])
+timer("saveStats",250)
+
+if(GData["gslot4_amt", number]==0)
+{
+GData:removeString("gslot4_c")
+GData:removeString("gslot4")
+GData:removeNumber("gslot4_amt")
+GData:removeNumber("gslot4_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("gs5"))
+{
+GData["lastPlayer", entity]:plyGive(GData["gslot5_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["gslot5_amt", number] = GData["gslot5_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["gslot5_p", number])
+timer("saveStats",250)
+
+if(GData["gslot5_amt", number]==0)
+{
+GData:removeString("gslot5_c")
+GData:removeString("gslot5")
+GData:removeNumber("gslot5_amt")
+GData:removeNumber("gslot5_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("gs6"))
+{
+GData["lastPlayer", entity]:plyGive(GData["gslot6_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["gslot6_amt", number] = GData["gslot6_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["gslot6_p", number])
+timer("saveStats",250)
+
+if(GData["gslot6_amt", number]==0)
+{
+GData:removeString("gslot6_c")
+GData:removeString("gslot6")
+GData:removeNumber("gslot6_amt")
+GData:removeNumber("gslot6_p")
+}
+
+storeHome()
+}
+
+#############
+
+
+
+#############
+
+if(moneyClk("as1"))
+{
+GData["lastPlayer", entity]:plyGive(GData["aslot1_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["aslot1_amt", number] = GData["aslot1_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["aslot1_p", number])
+timer("saveStats",250)
+
+if(GData["aslot1_amt", number]==0)
+{
+GData:removeString("aslot1_c")
+GData:removeString("aslot1")
+GData:removeNumber("aslot1_amt")
+GData:removeNumber("aslot1_p")
+}
+ 
+storeHome()
+}
+
+if(moneyClk("as2"))
+{
+GData["lastPlayer", entity]:plyGive(GData["aslot2_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["aslot2_amt", number] = GData["aslot2_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["aslot2_p", number])
+timer("saveStats",250)
+
+if(GData["aslot2_amt", number]==0)
+{
+GData:removeString("aslot2_c")
+GData:removeString("aslot2")
+GData:removeNumber("aslot2_amt")
+GData:removeNumber("aslot2_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("as3"))
+{
+GData["lastPlayer", entity]:plyGive(GData["aslot3_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["aslot3_amt", number] = GData["aslot3_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["aslot3_p", number])
+timer("saveStats",250)
+
+if(GData["aslot3_amt", number]==0)
+{
+GData:removeString("aslot3_c")
+GData:removeString("aslot3")
+GData:removeNumber("aslot3_amt")
+GData:removeNumber("aslot3_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("as4"))
+{
+GData["lastPlayer", entity]:plyGive(GData["aslot4_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["aslot4_amt", number] = GData["aslot4_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["aslot4_p", number])
+timer("saveStats",250)
+
+if(GData["aslot4_amt", number]==0)
+{
+GData:removeString("aslot4_c")
+GData:removeString("aslot4")
+GData:removeNumber("aslot4_amt")
+GData:removeNumber("aslot4_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("as5"))
+{
+GData["lastPlayer", entity]:plyGive(GData["aslot5_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["aslot5_amt", number] = GData["aslot5_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["aslot5_p", number])
+timer("saveStats",250)
+
+if(GData["aslot5_amt", number]==0)
+{
+GData:removeString("aslot5_c")
+GData:removeString("aslot5")
+GData:removeNumber("aslot5_amt")
+GData:removeNumber("aslot5_p")
+}
+
+storeHome()
+}
+
+if(moneyClk("as6"))
+{
+GData["lastPlayer", entity]:plyGive(GData["aslot6_c", string])
+GData["lastPlayer", entity]:sendMessage("Your weapon has been delivered! Come back again!")
+GData["aslot6_amt", number] = GData["aslot6_amt", number] - 1
+
+TSold = TSold+1
+TMon = TMon+(GData["aslot6_p", number])
+timer("saveStats",250)
+
+if(GData["aslot6_amt", number]==0)
+{
+GData:removeString("aslot6_c")
+GData:removeString("aslot6")
+GData:removeNumber("aslot6_amt")
+GData:removeNumber("aslot6_p")
+}
+
+storeHome()
+}
+
+
+
+############
+#########
+############
+
+if(clk("idle"))
+{
+GData["lastPlayer", entity]:sendMessage("The idle timer reached 10 seconds. Your purchase(s) was/were canceled.")
+noUser()
+}
+
+if(fileLoaded()&fileClk("fgshop_new/stats.txt"))
+{
+local New = jsonDecode(fileRead())
+TMon = New["monEarn", number]
+TSold = New["gunSold", number]
+print("Received file!")
+print("$"+TMon+" from "+TSold+" sales.")
+}
+
+if(fileLoaded()&fileClk("fgshop_new/credits/credits.txt"))
+{
+local New = jsonDecode(fileRead())
+Credits = New
+
+print("Should have loaded credits! Results:")
+printTable(Credits)
+}
+
+if(!fileLoaded()&fileClk())
+{
+print("File error: "+fileStatus())
+}
+
+if(clk("saveStats"))
+{
+saveStats()
+#print("Should save stats here.")
+stoptimer("saveStats")   
+}

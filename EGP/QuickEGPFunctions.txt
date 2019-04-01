@@ -1,0 +1,107 @@
+function string string:commas() {
+    local Str = This
+    while (Str:findRE( "^(-?%d+)(%d%d%d)" )) {  
+        Str = Str:replaceRE( "^(-?%d+)(%d%d%d)", "%1,%2")
+    }
+    return Str
+}
+
+function string string:formatMoney() {
+    return "$"+This:commas()
+}
+
+function string number:formatMoney() {
+    return "$"+This:toString():commas()
+}
+
+function wirelink:clear() {
+    This:egpClear()   
+}
+
+function number wirelink:button(Index, User:entity){
+    return inrange(This:egpCursor(User),This:egpPos(Index) - This:egpSize(Index) / 2, This:egpPos(Index) + This:egpSize(Index) / 2)
+}
+
+function number wirelink:egpButton(Index, User:entity){
+    return This:button(Index, User)
+}
+
+function wirelink:box(Index,Pos:vector2,Size:vector2,RGB:vector) {
+    This:egpBox(Index,Pos,Size)
+    This:egpColor(Index,RGB)
+}
+
+function wirelink:roundedBox(Index,Pos:vector2,Size:vector2,RGB:vector) {
+    This:egpRoundedBox(Index,Pos,Size)
+    This:egpColor(Index,RGB)  
+}
+
+function wirelink:roundedBoxMaterial(Index,Pos:vector2,Size:vector2,RGB:vector,Material:string) {
+    This:egpRoundedBox(Index,Pos,Size)
+    This:egpColor(Index,RGB)
+    This:egpMaterial(Index,Material)
+}
+
+function wirelink:box(Index,Pos:vector2,Size:vector2,RGBA:vector4) {
+    This:egpBox(Index,Pos,Size)
+    This:egpColor(Index,RGBA)  
+}
+
+function wirelink:boxMaterial(Index,Pos:vector2,Size:vector2,RGB:vector,Material:string) {
+    This:egpBox(Index,Pos,Size)
+    This:egpColor(Index,RGB)
+    This:egpMaterial(Index,Material)
+}
+
+function wirelink:boxMaterial(Index,Pos:vector2,Size:vector2,RGBA:vector4,Material:string) {
+    This:egpBox(Index,Pos,Size)
+    This:egpColor(Index,RGBA)
+    This:egpMaterial(Index,Material)
+}
+
+function wirelink:background(Index,RGB:vector) {
+    This:egpBox(Index,vec2(0,0),vec2(512,512))
+    This:egpColor(Index,RGB)
+}
+
+function wirelink:background(Index,RGBA:vector4) {
+    This:egpBox(Index,vec2(0,0),vec2(512,512))
+    This:egpColor(Index,RGBA)
+}
+
+function wirelink:backgroundMaterial(Index,RGB:vector,Material:string) {
+    This:egpBox(Index,vec2(256,256),vec2(512,512))
+    This:egpColor(Index,RGB)
+    This:egpMaterial(Index,Material)
+}
+
+function wirelink:backgroundMaterial(Index,RGBA:vector4,Material:string) {
+    This:egpBox(Index,vec2(256,256),vec2(512,512))
+    This:egpColor(Index,RGBA)
+    This:egpMaterial(Index,Material)
+}
+
+function wirelink:text(Index,Text:string,Pos:vector2,Size,RGB:vector) {
+    This:egpText(Index,Text,Pos)
+    This:egpColor(Index,RGB)
+    This:egpSize(Index,Size)
+}
+
+function wirelink:textMulti(Index,Text:string,Pos:vector2,Size:vector2,RGB:vector) {
+    This:egpTextLayout(Index,Text,Pos,Size)
+    This:egpColor(Index,RGB)
+}
+
+function wirelink:centeredText(Index,Text:string,Size,RGB:vector,Parent) {
+    This:egpText(Index,Text,vec2(0,0))
+    This:egpColor(Index,RGB)
+    This:egpAlign(Index,1,1)
+    This:egpParent(Index,Parent)
+    This:egpSize(Index,Size)
+}
+
+function wirelink:createCursor(Index,Size:vector2,RGBA:vector4) {
+    This:egpCircle(Index, vec2(0,0), Size)
+    This:egpColor(Index,RGBA)
+    This:egpParentToCursor(Index)
+}

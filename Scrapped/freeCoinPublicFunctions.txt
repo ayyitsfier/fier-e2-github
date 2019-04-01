@@ -1,0 +1,106 @@
+@name fLib_Public
+@persist RTable:table
+@persist Returned:table
+
+# This file should've been downloaded through another E2 showing an example of how to use it.
+
+# include this into your E2 using:
+# #include "fLib_Public"
+
+# This E2 is not meant for edits and should be left as is.
+
+#[
+
+- entity:fl_coinAmount() -
+    Sends request to server to get coin amount, server returns coin amount. -1 = no account.
+    
+- entity:fl_requestCharge(Amount:number) -
+    Sends request to server to charge entity. Server handles everything past that. Cannot charge self. No returns.
+    
+- fl_sendMoney(Target:entity, Amount:number) -
+    Tells server to send coins to Target, if you have Amount. Cannot send to self. No returns.
+    
+- fl_returnNumber() -
+    Returns the last Returned number. Is a function for ease of access and clean code.
+
+]#
+
+if(first())
+{
+    
+dsJoinGroup("fcoin_netgroup")
+
+function entity:fl_coinAmount()
+{
+RTable["request", number] = 1
+RTable["r_ent", entity] = This
+
+findByClass("gmod_wire_expression2")
+local E2s = findToArray()
+
+foreach(I, V:entity = E2s)
+{
+if(V:getName()=="fCoin_Server")
+{
+dsSendDirect("fcoin_net",V,RTable)
+RTable = table()
+break
+}
+}
+
+}
+
+function entity:fl_requestCharge(Amount:number)
+{
+RTable["request", number] = 2
+RTable["r_ent", entity] = This
+RTable["r_amount", number] = Amount
+
+findByClass("gmod_wire_expression2")
+local E2s = findToArray()
+
+foreach(I, V:entity = E2s)
+{
+if(V:getName()=="fCoin_Server")
+{
+dsSendDirect("fcoin_net",V,RTable)
+RTable = table()
+break
+}
+}
+
+}
+
+function fl_sendCoins(Target:entity,Amount:number)
+{
+RTable["request", number] = 3
+RTable["r_ent", entity] = Target
+RTable["r_amount", number] = Amount
+
+findByClass("gmod_wire_expression2")
+local E2s = findToArray()
+
+foreach(I, V:entity = E2s)
+{
+if(V:getName()=="fCoin_Server")
+{
+dsSendDirect("fcoin_net",V,RTable)
+RTable = table()
+break
+}
+}
+
+}
+
+function string fl_returnString()
+{
+return Returned["string", string]
+}
+
+}
+
+if(dsClk()||dsClk("fcoin_net"))
+{
+local Ret = dsGetString()
+Returned["string", string] = Ret
+}

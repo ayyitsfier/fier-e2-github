@@ -1,219 +1,293 @@
-@name Timerv3
-@persist Config:table
-@persist CurMin CurSec Color ColorSpec
+@name Timer
+@persist Config:table Data:table
 
-if(first()|dupefinished())
+if(first())
 {
     
     runOnChat(1)
-    Config = table()
-    Config["minutes", number] = 1
+    runOnLast(1)
     
-    function placeTimer()
+    Config = table(
+        "total_seconds" = 0
+    )
+    
+    function timerHoloInit()
     {
-        holoCreate(1)
-        holoPos(1, entity():toWorld(vec(0,0,35)))
-        holoModel(1, "models/sprops/misc/alphanum/alphanum_colon.mdl")
-        holoMaterial(1, "models/debug/debugwhite")
-        holoDisableShading(1, 1)
+        #holoDeleteAll()
+        for(I=1, 8)
+        {
+            holoCreate(I)
+            holoMaterial(I, "models/debug/debugwhite")
+            holoDisableShading(I, 1)
+            holoVisible(I, players(), 0)
+        }
         
-        # minutes
+        holoModel(3, "models/sprops/misc/alphanum/alphanum_colon.mdl")
+        holoModel(6, "models/sprops/misc/alphanum/alphanum_colon.mdl")
         
-        holoCreate(2)
-        holoPos(2, entity():toWorld(vec(0,20,35)))
+        holoPos(1, entity():toWorld(vec(0,35,35)))
+        holoPos(2, entity():toWorld(vec(0,25,35)))
+        holoPos(3, entity():toWorld(vec(0,15,35)))
+        holoPos(4, entity():toWorld(vec(0,5,35)))
+        holoPos(5, entity():toWorld(vec(0,-5,35)))
+        holoPos(6, entity():toWorld(vec(0,-15,35)))
+        holoPos(7, entity():toWorld(vec(0,-25,35)))
+        holoPos(8, entity():toWorld(vec(0,-35,35)))
+        
+        holoAng(1, ang(0,90,0))
         holoAng(2, ang(0,90,0))
-        holoMaterial(2, "models/debug/debugwhite")
-        holoDisableShading(2, 1)
-        
-        holoCreate(3)
-        holoPos(3, entity():toWorld(vec(0,10,35)))
-        holoAng(3, ang(0,90,0))
-        holoMaterial(3, "models/debug/debugwhite")
-        holoDisableShading(3, 1)
-        
-        local Val = Config["minutes", number]:toString()
-        if(Val:length()==1)
-        {
-            holoModel(2, "models/sprops/misc/alphanum/alphanum_0.mdl")
-            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
-        }
-        elseif(Val:length()==2)
-        {
-            holoModel(2, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
-            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(2)+".mdl")
-        }
-        
-        # seconds
-        
-        holoCreate(4)
-        holoPos(4, entity():toWorld(vec(0,-10,35)))
-        holoModel(4, "models/sprops/misc/alphanum/alphanum_0.mdl")
         holoAng(4, ang(0,90,0))
-        holoMaterial(4, "models/debug/debugwhite")
-        holoDisableShading(4, 1)
-        
-        holoCreate(5)
-        holoPos(5, entity():toWorld(vec(0,-20,35)))
-        holoModel(5, "models/sprops/misc/alphanum/alphanum_0.mdl")
         holoAng(5, ang(0,90,0))
-        holoMaterial(5, "models/debug/debugwhite")
-        holoDisableShading(5, 1)
+        holoAng(7, ang(0,90,0))
+        holoAng(8, ang(0,90,0))
     }
     
-    function startTimer()
+    function timerHoloUpdate(Time:number)
     {
-        
-        CurMin = Config["minutes", number]
-        CurSec = 0
-        Color = 0
-        
-        timer("start_timer", 500)
-    }
-    
-    function stopTimer()
-    {
-        holoDelete(1)
-        holoDelete(2)
-        holoDelete(3)
-        holoDelete(4)
-        holoDelete(5)
-        CurMin = 0
-        CurSec = 0
-        Color = 0
-        stoptimer("sec_timer")
-        stoptimer("start_timer")
-    }
-    
-    function pauseTimer() { 
-        stoptimer("sec_timer")
-    }
-    
-    function resumeTimer() { 
-        timer("sec_timer", 1000)
-    }
-
-}
-
-if(clk("start_timer"))
-{
-    stoptimer("start_timer")
-    
-    CurMin = Config["minutes", number] - 1
-    CurSec = 59
-    Color = 0
-    
-    local Val = CurMin:toString()
-    if(Val:length()==1)
-    {
-        holoModel(2, "models/sprops/misc/alphanum/alphanum_0.mdl")
-        holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
-    }
-    elseif(Val:length()==2)
-    {
-        holoModel(2, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
-        holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(2)+".mdl")
-    }
-    
-    local Val2 = CurSec:toString()
-    if(Val2:length()==1)
-    {
-        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
-        holoModel(5, "models/sprops/misc/alphanum/alphanum_0.mdl")
-    }
-    elseif(Val2:length()==2)
-    {
-        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
-        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(2)+".mdl")
-    }
-    
-    timer("sec_timer", 1000)
-}
-
-if(clk("sec_timer"))
-{
-    CurSec = CurSec - 1
-    
-    # change second model
-    local Val2 = CurSec:toString()
-
-    if(Val2:length()==1)
-    {
-        holoModel(4, "models/sprops/misc/alphanum/alphanum_0.mdl")
-        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
-    }
-    elseif(Val2:length()==2)
-    {
-        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
-        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(2)+".mdl")
-    }
-    
-    if(CurSec==0&&CurMin>0)
-    {
-        CurMin = CurMin - 1
-        
-        # change minute model
-        local Val = CurMin:toString()
-        if(Val:length()==1)
+        timerHoloInit()
+        for(I=1, 8)
         {
-            holoModel(2, "models/sprops/misc/alphanum/alphanum_0.mdl")
-            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
-        }
-        elseif(Val:length()==2)
-        {
-            holoModel(2, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
-            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(2)+".mdl")
+            holoVisible(I, players(), 1)
         }
         
-        CurSec = 60
+        local Seconds = Time
+        local Minutes = 0
+        local Hours = 0
+        
+        if(Seconds >= 60)
+        {
+            Minutes = floor(Seconds / 60)
+            Seconds = Seconds - (Minutes * 60)
+            
+            if(Minutes >= 60)
+            {
+                Hours = floor(Minutes / 60)
+                Minutes = Minutes - (Hours * 60)
+            }
+        }
+        
+        local HourString = Hours:toString()
+        local MinString = Minutes:toString()
+        local SecString = Seconds:toString()
+        
+        if(HourString:length() == 1)
+        {
+            HourString = "0" + HourString
+        }
+        
+        if(MinString:length() == 1)
+        {
+            MinString = "0" + MinString
+        }
+        
+        if(SecString:length() == 1)
+        {
+            SecString = "0" + SecString
+        }
+        
+        # Update the holo model
+        # Hour
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_"+HourString:sub(1,1)+".mdl")
+        holoModel(2, "models/sprops/misc/alphanum/alphanum_"+HourString:sub(2,2)+".mdl")
+        
+        # Minute
+        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+MinString:sub(1,1)+".mdl")
+        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+MinString:sub(2,2)+".mdl")
+        
+        # Second
+        holoModel(7, "models/sprops/misc/alphanum/alphanum_"+SecString:sub(1,1)+".mdl")
+        holoModel(8, "models/sprops/misc/alphanum/alphanum_"+SecString:sub(2,2)+".mdl")
     }
     
-    timer("sec_timer", 1000)
-    
-    if(CurMin==0&&CurSec==20)
+    function timerStart()
     {
-        Color = 1
-        timer("color", 200)
+        if(Config["total_seconds", number]>0)
+        {
+            Data["time", number] = Config["total_seconds", number]
+            Data["countdown", number] = 3
+            timerHoloUpdate(Data["time", number])
+            
+            setName("Timer / Starting")
+            
+            timer("starttimer", 1000)
+        }
+        else
+        {
+            hint("Timer is not set properly. Command: !tset", 6)
+        }
     }
     
-    if(CurMin==0&&CurSec==0)
+    function timerPause()
     {
-        stoptimer("sec_timer")
-        Color = 0
+        if(Data["started", number]==1)
+        {
+            stoptimer("second")
+            hint("Timer has been paused", 6)
+            
+            setName("Timer / Paused")
+        }
+        else
+        {
+            hint("Timer hasn't started yet, cannot manipulate. Command: !tstart", 6)
+        }
     }
+    
+    function timerResume()
+    {
+        if(Data["started", number]==1)
+        {
+            timer("second", 1000)
+            hint("Timer has been resumed", 6)
+            
+            setName("Timer / Ongoing")
+        }
+        else
+        {
+            hint("Timer hasn't started yet, cannot manipulate. Command: !tstart", 6)
+        }
+    }
+    
+    function timerStop()
+    {
+        stoptimer("second")
+        timerHoloInit()
+        Data["time", number] = 0
+        Config["total_seconds", number] = 0
+        
+        setName("Timer")
+    }
+    
+    function timerReset()
+    {
+        stoptimer("second")
+        reset()
+    }
+    
+    Data["started", number] = 0
+    timerHoloInit()
 }
 
-if(clk("color"))
+if(last())
 {
-    if(Color==1)
+    holoDeleteAll()
+}
+
+if(clk("second"))
+{
+    timer("second", 1000)
+    Data["time", number] = Data["time", number] - 1
+    if(Data["time", number] <= 0)
     {
-        ColorSpec = !ColorSpec
-        local TC = ColorSpec == 1 ? vec(255, 255, 255) : vec(255, 0, 0)
-        holoColor(1, TC)
-        holoColor(2, TC)
-        holoColor(3, TC)
-        holoColor(4, TC)
-        holoColor(5, TC)
-        timer("color", 500)
+        stoptimer("second")
+        hint("Timer has reached 0 seconds", 6)
+        entity():soundPlay("timesup", soundDuration("error.wav"), "error.wav")
+        Data["started", number] = 0
+        
+        setName("Timer / Stopped")
+        
     }
+    
+    if(Data["time", number] > 0 && Data["time", number] <= 15)
+    {
+        entity():soundPlay("tick", soundDuration("buttons/lightswitch2.wav"), "buttons/lightswitch2.wav")
+    }
+    timerHoloUpdate(Data["time", number])
+}
+
+if(clk("starttimer"))
+{
+    timer("starttimer", 1000)
+    if(Data["countdown", number] <= 0)
+    {
+        stoptimer("starttimer")
+        timer("second", 1000)
+        Data["started", number] = 1
+        hint("Timer has started", 6)
+        entity():soundPlay("timestart", soundDuration("buttons/bell1.wav"), "buttons/bell1.wav")
+        setName("Timer / Ongoing")
+    }
+    else
+    {
+        entity():soundPlay("countdown", soundDuration("buttons/blip1.wav"), "buttons/blip1.wav")
+    }
+    
+    Data["countdown", number] = Data["countdown", number] - 1
 }
 
 if(chatClk(owner()))
 {
-    LS = owner():lastSaid():lower():explode(" ")
-    if(LS[1, string]=="!tset")
+    local LS = owner():lastSaid():lower():explode(" ")
+    local Cmd = LS[1, string]
+    
+    if(Cmd == "!tset")
     {
         hideChat(1)
-        local MinutesStr = LS[2, string]
-        local Minutes = MinutesStr:toNumber()
-        if(Minutes >= 1 && Minutes <= 99)
+        if(Data["started", number]==0)
         {
-            Config["minutes", number] = Minutes
-            placeTimer()
+            if(LS[2, string]:find("s"))
+            {
+                local Time = (LS[2, string]:replace("s", "")):toNumber()
+                
+                if(Time>0)
+                {
+                    Config["total_seconds", number] = Time
+                    timerHoloUpdate(Config["total_seconds", number])
+                    hint("Timer set for "+Time+" seconds", 6)
+                    
+                    setName("Timer / Set")
+                    entity():soundPlay("wevebeenset", soundDuration("buttons/light_power_on_switch_01.wav"), "buttons/light_power_on_switch_01.wav")
+                }
+                else
+                {
+                    hint("Amount given not within time restriction (> 0)", 6)
+                }
+            }
+            elseif(LS[2, string]:find("h"))
+            {
+                local Time = LS[2, string]:replace("h", ""):toNumber() * 3600
+                
+                if(Time>0)
+                {
+                    Config["total_seconds", number] = Time
+                    timerHoloUpdate(Config["total_seconds", number])
+                    hint("Timer set for "+(Time / 3600)+" hours", 6)
+                    
+                    setName("Timer / Set")
+                    entity():soundPlay("wevebeenset", soundDuration("buttons/light_power_on_switch_01.wav"), "buttons/light_power_on_switch_01.wav")
+                }
+            }
+            else
+            {
+                if(LS[2, string]:toNumber()>0 && LS[2, string]:toNumber()<=99)
+                {
+                    local Time = LS[2, string]:toNumber() * 60
+                    Config["total_seconds", number] = Time
+                    timerHoloUpdate(Config["total_seconds", number])
+                    hint("Timer set for "+(Time / 60)+" minutes", 6)
+                    
+                    setName("Timer / Set")
+                    entity():soundPlay("wevebeenset", soundDuration("buttons/light_power_on_switch_01.wav"), "buttons/light_power_on_switch_01.wav")
+                }
+                else
+                {
+                    hint("Amount given not within time restriction (> 0 and <= 99", 6)
+                }
+            }
         }
     }
     
-    if(LS[1, string]=="!tstart") { hideChat(1) startTimer() }
-    if(LS[1, string]=="!tstop") { hideChat(1) stopTimer() }
-    if(LS[1, string]=="!tpause") { hideChat(1) pauseTimer() }
-    if(LS[1, string]=="!tresume") { hideChat(1) resumeTimer() }
+    if(Cmd == "!tstart") { hideChat(1) timerStart() }
+    if(Cmd == "!tpause") { hideChat(1) timerPause() }
+    if(Cmd == "!tresume") { hideChat(1) timerResume() }
+    if(Cmd == "!tstop" || Cmd == "!tclear") { hideChat(1) timerStop() }
+    if(Cmd == "!treset") { hideChat(1) timerReset() }
+
+    if(Cmd == "!tdebug") 
+    {
+        local Index = LS[2, string]:toNumber()
+        if(Index >= 1 && Index <= 5)
+        {
+            owner():plySetPos(holoEntity(Index):pos())
+        }
+    }
 }

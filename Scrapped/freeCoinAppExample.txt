@@ -1,0 +1,76 @@
+@persist Requestor:entity
+# This is an example file that shows the basics of using fLib, a library for users
+# to implement fCoins into their Expression 2's.
+
+# You do need the included "fLib_Public" as it is there to make things easier and less messy.
+
+# entity:fl_coinAmount() will send a request to the server expression 2, and will gather the information:
+# how many coins does entity have
+# sending it back to this E2.
+
+#include "freeCoinPublicFunctions"
+
+if(first())
+{
+
+runOnChat(1)
+
+}
+
+# To receive that information:
+# this is the only function that gets a return
+# print(fl_returnString()) will print the last returned item.
+# use with dsClk("fcoin_net") or just dsClk()
+
+if(chatClk())
+{
+
+LS = lastSaid():explode(" ")
+
+if(LS[1, string]=="!balance")
+{
+local Tar = lastSpoke()
+if (LS:exists(2))
+{
+local Ply = findPlayerByName(LS[2, string])
+if(Ply:isPlayer() && Ply != lastSpoke())
+{
+Tar = Ply
+}
+}
+Tar:fl_coinAmount()
+Requestor = lastSpoke()
+}
+
+if(LS[1, string]=="!request")
+{
+local Ply = findPlayerByName(LS[2, string])
+if(Ply:isPlayer() && Ply != lastSpoke())
+{
+local Amount = LS[3, string]:toNumber()
+if(Amount>0)
+{
+Ply:fl_requestCharge(Amount)
+}
+}
+}
+
+}
+
+if(dsClk()||dsClk("fcoin_net"))
+{
+if(fl_returnString():explode("_")[1, string]=="balance")
+{
+if(Requestor:isPlayer())
+{
+if(fl_returnString():explode("_")[2, string]:toNumber()!=-1)
+{
+Requestor:sendMessage(fl_returnString():explode("_")[2, string]+" FC")
+}
+else
+{
+Requestor:sendMessage("You don't have an account, sorry!")
+}
+}
+}
+}

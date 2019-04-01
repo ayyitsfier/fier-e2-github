@@ -1,0 +1,792 @@
+@name Bank
+@inputs E:wirelink User:entity
+@persist EGP:table
+@persist Bank:table
+
+if(first())
+{
+
+runOnFile(1)
+
+#include "QuickEGPFunctions"
+
+EGP = table()
+Bank = table()
+
+function title()
+{
+
+stoptimer("idle")
+EGP["lastUser", entity] = noentity()
+EGP["page", number] = 1
+
+E:egpDrawTopLeft(0)
+E:clear()
+E:backgroundMaterial(1, vec(20, 20, 90), "gui/gradient_up")
+
+E:box(2, vec2(256, 32), vec2(256, 32), vec(50, 50, 110))
+E:centeredText(3, "Bank", 30, vec(255, 255, 255), 2)
+
+E:box(4, vec2(256, 256), vec2(256, 48), vec(50, 50, 110))
+E:centeredText(5, "Continue", 28, vec(255, 255, 255), 4)
+
+E:createCursor(500, vec2(3, 3), vec4(200, 70, 70, 255))
+}
+
+function entity:home()
+{
+
+timer("idle", 45000)
+EGP["page", number] = 2
+EGP["lastUser", entity] = This
+local Ply = EGP["lastUser", entity]
+
+E:egpDrawTopLeft(0)
+E:clear()
+E:backgroundMaterial(1, vec(20, 20, 90), "gui/gradient_up")
+
+E:box(2, vec2(256, 32), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(3, "Hello, "+EGP["lastUser", entity]:name(), 30, vec(255, 255, 255), 2)
+
+E:box(4, vec2(256, 68), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(5, "Bank: "+Bank[Ply:steamID(), number]:formatMoney(), 22, vec(255, 255, 255), 4)
+
+E:box(6, vec2(256, 100), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(7, "Wallet: "+Ply:money():formatMoney(), 22, vec(255, 255, 255), 6)
+
+E:box(8, vec2(130, 256), vec2(192, 96), vec(50, 50, 110))
+E:centeredText(9, "Withdraw", 26, vec(255, 255, 255), 8)
+
+E:box(10, vec2(372, 256), vec2(192, 96), vec(50, 50, 110))
+E:centeredText(11, "Deposit", 26, vec(255, 255, 255), 10)
+
+E:box(12, vec2(256, 352), vec2(256, 64), vec(50, 50, 110))
+E:centeredText(13, "Exit", 28, vec(255, 255, 255), 12)
+
+E:createCursor(500, vec2(3, 3), vec4(200, 70, 70, 255))
+}
+
+function numpad()
+{
+E:box(30, vec2(256, 188-16), vec2(256, 64), vec(50, 50, 110))
+E:centeredText(31, 0:formatMoney(), 26, vec(255, 255, 255), 30)
+
+# Row 1
+E:box(10, vec2(188, 188+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(11, "7", 26, vec(255, 255, 255), 10)
+
+E:box(12, vec2(256, 188+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(13, "8", 26, vec(255, 255, 255), 12)
+
+E:box(14, vec2(324, 188+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(15, "9", 26, vec(255, 255, 255), 14)
+
+E:box(32, vec2(188-68, 188+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(33, "<", 26, vec(255, 255, 255), 32)
+
+# Row 2
+E:box(16, vec2(188, 256+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(17, "4", 26, vec(255, 255, 255), 16)
+
+E:box(18, vec2(256, 256+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(19, "5", 26, vec(255, 255, 255), 18)
+
+E:box(20, vec2(324, 256+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(21, "6", 26, vec(255, 255, 255), 20)
+
+E:box(34, vec2(188-68, 256+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(35, "C", 26, vec(255, 255, 255), 34)
+
+E:box(36, vec2(324+68, 256+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(37, "Go", 26, vec(255, 255, 255), 36)
+
+# Row 3
+E:box(22, vec2(188, 324+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(23, "1", 26, vec(255, 255, 255), 22)
+
+E:box(24, vec2(256, 324+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(25, "2", 26, vec(255, 255, 255), 24)
+
+E:box(26, vec2(324, 324+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(27, "3", 26, vec(255, 255, 255), 26)
+
+E:box(38, vec2(324+68, 324+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(39, "X", 26, vec(255, 255, 255), 38)
+
+# Row 4
+E:box(28, vec2(256,392+64), vec2(200, 64), vec(30, 30, 130))
+E:centeredText(29, "0", 26, vec(255, 255, 255), 28)
+}
+
+function withdrawScreen()
+{
+
+stoptimer("idle")
+EGP["egpAmount", number] = 0
+EGP["page", number] = 3
+local Ply = EGP["lastUser", entity]
+local Amount = EGP["egpAmount", number]
+
+E:egpDrawTopLeft(0)
+E:clear()
+E:backgroundMaterial(1, vec(20, 20, 90), "gui/gradient_up")
+
+E:box(2, vec2(256, 32), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(3, "Withdraw Money From Your Account", 30, vec(255, 255, 255), 2)
+
+E:box(4, vec2(256, 68), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(5, "Bank: "+Bank[Ply:steamID(), number]:formatMoney(), 22, vec(255, 255, 255), 4)
+
+# NUMPAD #
+
+numpad()
+E:egpSetText(31, Amount:formatMoney())
+
+E:box(40, vec2(324+68, 188+64), vec2(64, 64), vec(30, 30, 130))
+E:centeredText(41, "All", 26, vec(255, 255, 255), 40)
+
+# CURSOR #
+
+E:createCursor(500, vec2(3, 3), vec4(200, 70, 70, 255))
+}
+
+function depositScreen()
+{
+
+stoptimer("idle")
+EGP["egpAmount", number] = 0
+EGP["page", number] = 4
+local Ply = EGP["lastUser", entity]
+local Amount = EGP["egpAmount", number]
+
+E:egpDrawTopLeft(0)
+
+E:clear()
+E:backgroundMaterial(1, vec(20, 20, 90), "gui/gradient_up")
+
+E:box(2, vec2(256, 32), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(3, "Deposit Money Into Your Account", 30, vec(255, 255, 255), 2)
+
+E:box(4, vec2(256, 68), vec2(512, 32), vec(50, 50, 110))
+E:centeredText(5, "Wallet: "+Ply:money():formatMoney(), 22, vec(255, 255, 255), 4)
+
+# NUMPAD #
+
+numpad()
+E:egpSetText(31, Amount:formatMoney())
+
+# CURSOR #
+
+E:createCursor(500, vec2(3, 3), vec4(200, 70, 70, 255))
+}
+
+title()
+
+}
+
+#####################################################
+
+
+
+        #[[
+        /*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\
+        
+        
+                !!!NUMPAD CONTROLS!!!
+        
+        
+        /*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\
+        ]]#
+
+
+
+#####################################################
+
+if(EGP["buttonPause", number] == 0)
+{
+
+##### ROW 1 #####
+
+if(changed(E:button(10, User)) && E:button(10, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "7"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "7"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "7"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "7"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(12, User)) && E:button(12, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "8"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "8"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "8"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "8"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(14, User)) && E:button(14, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "9"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "9"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "9"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "9"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(32, User)) && E:button(32, User))
+{
+if(EGP["page", number] == 3 | EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["egpAmount", number] != 0)
+{
+local String = EGP["egpAmount", number]:toString()
+EGP["egpAmount", number] = (String:sub(1,String:length()-1)):toNumber()
+}
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+
+if(changed(E:button(38, User)) && E:button(38, User))
+{
+if(EGP["page", number] == 3 | EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+EGP["buttonPause", number] = 1
+timer("unpause", 1000)
+EGP["lastUser", entity]:home()
+}
+}
+}
+
+if(changed(E:button(40, User)) && E:button(40, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["egpAmount", number] != Bank[EGP["lastUser", entity]:steamID(), number])
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+##### ROW 2 #####
+
+if(changed(E:button(16, User)) && E:button(16, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "4"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "4"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "4"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "4"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(18, User)) && E:button(18, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "5"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "5"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "5"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "5"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(20, User)) && E:button(20, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "6"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "6"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "6"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "6"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(34, User)) && E:button(34, User))
+{
+if(EGP["page", number] == 3 | EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["egpAmount", number] != 0)
+{
+EGP["egpAmount", number] = 0
+}
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+
+if(changed(E:button(36, User)) && E:button(36, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["egpAmount", number] != 0 && Bank[EGP["lastUser", entity]:steamID(), number] >= EGP["egpAmount", number])
+{
+Bank[EGP["lastUser", entity]:steamID(), number] = Bank[EGP["lastUser", entity]:steamID(), number] - EGP["egpAmount", number]
+moneyGive(EGP["lastUser", entity], EGP["egpAmount", number])
+if(fileCanWrite())
+{
+local Tab = table()
+Tab["stored_money", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+Tab["rpname", string] = EGP["lastUser", entity]:name()
+fileWrite("fbank/"+EGP["lastUser", entity]:steamID64()+".txt", jsonEncode(Tab))
+}
+EGP["buttonPause", number] = 1
+timer("unpause", 1000)
+EGP["lastUser", entity]:home()
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= EGP["egpAmount", number])
+{
+moneyRequest(EGP["lastUser", entity], EGP["egpAmount", number], "Deposit")
+}
+}
+}
+}
+
+##### ROW 3 #####
+
+if(changed(E:button(22, User)) && E:button(22, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "1"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "1"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "1"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "1"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+
+if(changed(E:button(24, User)) && E:button(24, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "2"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "2"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "2"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "2"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+if(changed(E:button(26, User)) && E:button(26, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "3"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "3"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "3"):toNumber())
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "3"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+
+##### ROW 4 #####
+
+if(changed(E:button(28, User)) && E:button(28, User))
+{
+if(EGP["page", number] == 3)
+{
+if(User==EGP["lastUser", entity])
+{
+if(Bank[EGP["lastUser", entity]:steamID(), number] >=(EGP["egpAmount", number]:toString() + "0"):toNumber())
+{
+if(EGP["egpAmount", number] != 0)
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "0"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+else
+{
+EGP["egpAmount", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+elseif(EGP["page", number] == 4)
+{
+if(User==EGP["lastUser", entity])
+{
+if(EGP["lastUser", entity]:money() >= (EGP["egpAmount", number]:toString() + "0"):toNumber())
+{
+if(EGP["egpAmount", number] != 0)
+{
+EGP["egpAmount", number] = (EGP["egpAmount", number]:toString() + "0"):toNumber()
+E:egpSetText(31, EGP["egpAmount", number]:formatMoney())
+}
+}
+}
+}
+}
+
+#####################################################
+
+
+
+        #[[
+        /*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\
+        
+        
+                   !!!Other buttons!!!
+        
+        
+        /*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\
+        ]]#
+
+
+
+#####################################################
+
+if(changed(E:button(4, User)) && E:button(4, User))
+{
+if(EGP["page", number]==1)
+{
+if(Bank:exists(User:steamID()))
+{
+User:home()
+}
+elseif(!Bank:exists(User:steamID()))
+{
+if(fileCanLoad())
+{
+fileLoad("fbank/"+User:steamID64()+".txt")
+EGP["lastUser", entity] = User
+}
+}
+EGP["buttonPause", number] = 1
+timer("unpause", 1000)
+timer("createFile", 3000)
+}
+}
+
+if(changed(E:button(8, User)) && E:button(8, User))
+{
+if(EGP["page", number]==2)
+{
+if(User==EGP["lastUser", entity])
+{
+EGP["buttonPause", number] = 1
+timer("unpause", 1000)
+withdrawScreen()
+}
+}
+}
+
+if(changed(E:button(10, User)) && E:button(10, User))
+{
+if(EGP["buttonPause", number] != 1)
+{
+if(EGP["page", number]==2)
+{
+if(User==EGP["lastUser", entity])
+{
+EGP["buttonPause", number] = 1
+timer("unpause", 1000)
+depositScreen()
+}
+}
+}
+}
+
+if(changed(E:button(12, User)) && E:button(12, User))
+{
+if(EGP["page", number]==2)
+{
+if(User==EGP["lastUser", entity])
+{
+EGP["buttonPause", number] = 1
+timer("unpause", 1000)
+title()
+}
+}
+}
+
+}
+
+if(moneyClk())
+{
+local Ply = moneyClkPlayer()
+Bank[EGP["lastUser", entity]:steamID(), number] = Bank[EGP["lastUser", entity]:steamID(), number] + EGP["egpAmount", number]
+if(fileCanWrite())
+{
+local Tab = table()
+Tab["stored_money", number] = Bank[EGP["lastUser", entity]:steamID(), number]
+Tab["rpname", string] = EGP["lastUser", entity]:name()
+
+fileWrite("fbank/"+EGP["lastUser", entity]:steamID64()+".txt", jsonEncode(Tab))
+}
+EGP["lastUser", entity]:home()
+}
+
+#####################################################
+
+
+
+        #[[
+        /*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\
+        
+        
+                !!!File data handle!!!
+        
+        
+        /*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\/*\
+        ]]#
+
+
+
+#####################################################
+
+if(fileLoaded()&fileClk())
+{
+if(!Bank:exists(EGP["lastUser", entity]:steamID()))
+{
+Bank[EGP["lastUser", entity]:steamID(), number] = (jsonDecode(fileRead()))["stored_money", number]
+
+local File = fileName()
+File = File:replace("fbank/", "")
+File = File:replace(".txt", "")
+
+findPlayerBySteamID64(File):home()
+}
+}
+
+if(clk("unpause"))
+{
+stoptimer("unpause")
+EGP:removeNumber("buttonPause")
+}
+
+if(clk("createFile"))
+{
+if(!fileLoaded()&!fileLoading())
+{
+if(!Bank:exists(EGP["lastUser", entity]:steamID()))
+{
+if(fileStatus()==_FILE_UNKNOWN)
+{
+Bank[EGP["lastUser", entity]:steamID(), number] = 0
+
+local Tab = table()
+Tab["stored_money", number] = 0
+Tab["rpname", string] = EGP["lastUser", entity]:name()
+
+if(fileCanWrite())
+{
+fileWrite("fbank/"+EGP["lastUser", entity]:steamID64()+".txt", jsonEncode(Tab))
+EGP["lastUser", entity]:home()
+}
+}
+}
+}
+}
+
+if(clk("idle"))
+{
+stoptimer("idle")
+title()
+}

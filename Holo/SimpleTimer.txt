@@ -1,0 +1,219 @@
+@name Timerv3
+@persist Config:table
+@persist CurMin CurSec Color ColorSpec
+
+if(first()|dupefinished())
+{
+    
+    runOnChat(1)
+    Config = table()
+    Config["minutes", number] = 1
+    
+    function placeTimer()
+    {
+        holoCreate(1)
+        holoPos(1, entity():toWorld(vec(0,0,35)))
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_colon.mdl")
+        holoMaterial(1, "models/debug/debugwhite")
+        holoDisableShading(1, 1)
+        
+        # minutes
+        
+        holoCreate(2)
+        holoPos(2, entity():toWorld(vec(0,20,35)))
+        holoAng(2, ang(0,90,0))
+        holoMaterial(2, "models/debug/debugwhite")
+        holoDisableShading(2, 1)
+        
+        holoCreate(3)
+        holoPos(3, entity():toWorld(vec(0,10,35)))
+        holoAng(3, ang(0,90,0))
+        holoMaterial(3, "models/debug/debugwhite")
+        holoDisableShading(3, 1)
+        
+        local Val = Config["minutes", number]:toString()
+        if(Val:length()==1)
+        {
+            holoModel(2, "models/sprops/misc/alphanum/alphanum_0.mdl")
+            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
+        }
+        elseif(Val:length()==2)
+        {
+            holoModel(2, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
+            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(2)+".mdl")
+        }
+        
+        # seconds
+        
+        holoCreate(4)
+        holoPos(4, entity():toWorld(vec(0,-10,35)))
+        holoModel(4, "models/sprops/misc/alphanum/alphanum_0.mdl")
+        holoAng(4, ang(0,90,0))
+        holoMaterial(4, "models/debug/debugwhite")
+        holoDisableShading(4, 1)
+        
+        holoCreate(5)
+        holoPos(5, entity():toWorld(vec(0,-20,35)))
+        holoModel(5, "models/sprops/misc/alphanum/alphanum_0.mdl")
+        holoAng(5, ang(0,90,0))
+        holoMaterial(5, "models/debug/debugwhite")
+        holoDisableShading(5, 1)
+    }
+    
+    function startTimer()
+    {
+        
+        CurMin = Config["minutes", number]
+        CurSec = 0
+        Color = 0
+        
+        timer("start_timer", 500)
+    }
+    
+    function stopTimer()
+    {
+        holoDelete(1)
+        holoDelete(2)
+        holoDelete(3)
+        holoDelete(4)
+        holoDelete(5)
+        CurMin = 0
+        CurSec = 0
+        Color = 0
+        stoptimer("sec_timer")
+        stoptimer("start_timer")
+    }
+    
+    function pauseTimer() { 
+        stoptimer("sec_timer")
+    }
+    
+    function resumeTimer() { 
+        timer("sec_timer", 1000)
+    }
+
+}
+
+if(clk("start_timer"))
+{
+    stoptimer("start_timer")
+    
+    CurMin = Config["minutes", number] - 1
+    CurSec = 59
+    Color = 0
+    
+    local Val = CurMin:toString()
+    if(Val:length()==1)
+    {
+        holoModel(2, "models/sprops/misc/alphanum/alphanum_0.mdl")
+        holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
+    }
+    elseif(Val:length()==2)
+    {
+        holoModel(2, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
+        holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(2)+".mdl")
+    }
+    
+    local Val2 = CurSec:toString()
+    if(Val2:length()==1)
+    {
+        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
+        holoModel(5, "models/sprops/misc/alphanum/alphanum_0.mdl")
+    }
+    elseif(Val2:length()==2)
+    {
+        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
+        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(2)+".mdl")
+    }
+    
+    timer("sec_timer", 1000)
+}
+
+if(clk("sec_timer"))
+{
+    CurSec = CurSec - 1
+    
+    # change second model
+    local Val2 = CurSec:toString()
+
+    if(Val2:length()==1)
+    {
+        holoModel(4, "models/sprops/misc/alphanum/alphanum_0.mdl")
+        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
+    }
+    elseif(Val2:length()==2)
+    {
+        holoModel(4, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(1,1)+".mdl")
+        holoModel(5, "models/sprops/misc/alphanum/alphanum_"+Val2:sub(2)+".mdl")
+    }
+    
+    if(CurSec==0&&CurMin>0)
+    {
+        CurMin = CurMin - 1
+        
+        # change minute model
+        local Val = CurMin:toString()
+        if(Val:length()==1)
+        {
+            holoModel(2, "models/sprops/misc/alphanum/alphanum_0.mdl")
+            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
+        }
+        elseif(Val:length()==2)
+        {
+            holoModel(2, "models/sprops/misc/alphanum/alphanum_"+Val:sub(1,1)+".mdl")
+            holoModel(3, "models/sprops/misc/alphanum/alphanum_"+Val:sub(2)+".mdl")
+        }
+        
+        CurSec = 60
+    }
+    
+    timer("sec_timer", 1000)
+    
+    if(CurMin==0&&CurSec==20)
+    {
+        Color = 1
+        timer("color", 200)
+    }
+    
+    if(CurMin==0&&CurSec==0)
+    {
+        stoptimer("sec_timer")
+        Color = 0
+    }
+}
+
+if(clk("color"))
+{
+    if(Color==1)
+    {
+        ColorSpec = !ColorSpec
+        local TC = ColorSpec == 1 ? vec(255, 255, 255) : vec(255, 0, 0)
+        holoColor(1, TC)
+        holoColor(2, TC)
+        holoColor(3, TC)
+        holoColor(4, TC)
+        holoColor(5, TC)
+        timer("color", 500)
+    }
+}
+
+if(chatClk(owner()))
+{
+    LS = owner():lastSaid():lower():explode(" ")
+    if(LS[1, string]=="!tset")
+    {
+        hideChat(1)
+        local MinutesStr = LS[2, string]
+        local Minutes = MinutesStr:toNumber()
+        if(Minutes >= 1 && Minutes <= 99)
+        {
+            Config["minutes", number] = Minutes
+            placeTimer()
+        }
+    }
+    
+    if(LS[1, string]=="!tstart") { hideChat(1) startTimer() }
+    if(LS[1, string]=="!tstop") { hideChat(1) stopTimer() }
+    if(LS[1, string]=="!tpause") { hideChat(1) pauseTimer() }
+    if(LS[1, string]=="!tresume") { hideChat(1) resumeTimer() }
+}
