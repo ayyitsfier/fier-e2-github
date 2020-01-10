@@ -1,0 +1,91 @@
+if(first())
+{
+
+    #include "Libs/luafilemanager"
+
+    FILE_SILENT = 1
+    PARSE_SILENT = 1
+
+    runOnFile(1)
+    runOnLast(1)
+    runOnConnect(1)
+
+    # The following file isn't properly provided.
+    # It is included in GitHub, so the path to it here has been modified.
+    # Normally you'd find it in the data folder.
+    luaFileRun("lua_job_data.txt", 4)
+}
+
+if(last())
+{
+    handleLuaLast()
+}
+
+if(connectClk())
+{
+    local Ply = lastConnectedPlayer()
+    local Lua = FILE_DATA["lua_job_data.txt", string]
+
+    Ply:luaRunPly(Lua)
+}
+
+if(clk("FILE_QUEUE"))
+{
+    handleQueueTimer()
+}
+
+if(fileClk())
+{
+    handleLuaLoad()
+}
+
+if(clk("PARSE"))
+{
+    handleParseTimer()
+}
+
+if(clk("PARSE_COMPLETE"))
+{
+    if(PARSE_TITLE == "lua_job_data.txt")
+    {
+        luaRunFunction(
+        "lua_job_data.txt", "createjob",
+            table(
+                "name" = "Fier",
+                "clr" = vec4(0, 0, 255, 255),
+                "mdl" = "models/player/magnusson.mdl",
+                "desc" = "Personal job for Fier. Testing some Expression 2 shit.",
+                "weap" = array(),
+                "cmd" = "fier",
+                "max" = 1,
+                "slry" = 25,
+                "adm" = 0,
+                "vote" = 0,
+                "lic" = 0,
+                "cat" = "Other",
+                "cc" = "function(ply) return ply:SteamID64() == \""+ owner():steamID64() +"\" end",
+                "mes" = "This job is meant for Fier only!"
+            )
+        )
+
+        luaRunFunction(
+        "lua_job_data.txt", "createjob",
+            table(
+                "name" = "Canadian",
+                "clr" = vec4(255, 0, 0, 255),
+                "mdl" = "models/player/hostage/hostage_04.mdl",
+                "desc" = "Only superadmins and canadians can use this class!",
+                "weap" = array(),
+                "cmd" = "canadian",
+                "max" = 1,
+                "slry" = 25,
+                "adm" = 0,
+                "vote" = 0,
+                "lic" = 0,
+                "cat" = "Other",
+                "cc" = "function(ply) return ply:GetUserGroup() == \"superadmin\" or ply:GetUserGroup() == \"canadian\" end",
+                "mes" = "This job is meant for Superadmins and Canadians only!"
+            )
+        )
+    }
+}

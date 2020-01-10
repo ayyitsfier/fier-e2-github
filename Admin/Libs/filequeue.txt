@@ -1,0 +1,176 @@
+@name FileQueue
+@persist FILE_DATA:table FILE_QUEUE:array FILE_LAST:table
+@persist [FILE_LOADING FILE_SILENT]:number
+
+if(first())
+{
+    function number fileDataExists(Path:string)
+    {
+        return (FILE_DATA:exists(Path))
+    }
+    
+    function string getFileData(Path:string)
+    {
+        if(fileDataExists(Path))
+        {
+            return FILE_DATA[Path, string]
+        }
+    }
+    
+    function number fileInQueue(Path:string)
+    {
+        local Lookup = invert(FILE_QUEUE)
+        return (Lookup:exists(Path))
+    }
+    
+    ###
+    
+    function openQueuedFiles()
+    {
+        if(FILE_QUEUE:count()>=1)
+        {
+            
+            if(FILE_SILENT == 0 && FILE_LOADING == 0)
+            {
+                print("Loaded ("+FILE_QUEUE:count()+") queued files.")
+            }
+            
+            FILE_LOADING = 1
+            
+            timer("FILE_QUEUE", 200)
+        }
+    }
+    
+    ###
+    
+    function queueFile(Path:string)
+    {
+        if(!fileInQueue(Path))
+        {
+            FILE_QUEUE:pushString(Path)
+            
+            if(FILE_SILENT == 0)
+            {
+                print("Added file: " + Path + "; to the queue.")
+            }
+        }
+    }
+    
+    function queueFiles(Pack:array)
+    {
+        foreach(I, V:string = Pack)
+        {
+            queueFile(V)
+        }
+    }
+    
+    function queueFiles(Pack:table)
+    {
+        queueFiles(Pack:toArray())
+    }
+    
+    ###
+    
+    function openFile(Path:string)
+    {
+        queueFile(Path)
+        openQueuedFiles()
+    }
+    
+    function openFiles(Pack:array)
+    {
+        queueFiles(Pack)
+        openQueuedFiles()
+    }
+    
+    function openFiles(Pack:table)
+    {
+        queueFiles(Pack)
+        openQueuedFiles()
+    }
+    
+    ###
+    
+    function handleQueueTimer()
+    {
+        stoptimer("FILE_QUEUE")
+        if(FILE_QUEUE:count() >= 1 && FILE_QUEUE:exists(1))
+        {
+            if(fileCanLoad())
+            {
+                local Path = FILE_QUEUE[1, string]
+                fileLoad(Path)
+                FILE_QUEUE:removeString(1)
+                
+                if(FILE_SILENT == 0)
+                {
+                    print("Attempting to load file: "+Path+" from queue.")
+                }
+                
+                FILE_LAST = table("name"=Path)
+                
+                if(FILE_QUEUE:count()>=1)
+                {
+                    timer("FILE_QUEUE", 275)
+                }
+                else
+                {
+                    FILE_LOADING = 0
+                }
+            }
+            else
+            {
+                timer("FILE_QUEUE", 425)
+            }
+        }
+    }
+    
+    function number handleFileError()
+    {
+        if(fileStatus() == _FILE_UNKNOWN)
+        {
+            print("ERROR! Unknown")
+            return 1
+        }
+        elseif(fileStatus() == _FILE_404)
+        {
+            print("ERROR! This file doesn't exist")
+            return 1
+        }
+        elseif(fileStatus() == _FILE_TIMEOUT)
+        {
+            print("ERROR! File function timed out")
+            return 1
+        }
+        elseif(fileStatus() == _FILE_TRANSFER_ERROR)
+        {
+            print("ERROR! Could not transfer file")
+            return 1
+        }
+        
+        return 0
+    }
+    
+    function handleFilePostLoad()
+    {
+        if(handleFileError() != 1)
+        {
+            local Path = FILE_LAST["name", string]
+            
+            if(fileName() == Path)
+            {
+                local Read = fileRead()
+                FILE_LAST["data", string] = Read
+                FILE_DATA[Path, string] = Read
+                
+                if(FILE_SILENT == 0)
+                {
+                    print("Successfully loaded file: "+Path+" from the queue.")
+                }
+                
+            }
+        }
+        
+        handleQueueTimer()
+    }
+}

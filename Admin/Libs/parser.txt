@@ -1,0 +1,113 @@
+@name Parser
+@persist PARSE_TITLE:string PARSE_DATA:string PARSED:table
+@persist PARSING:number PARSE_SILENT:number
+@persist PATTERN:string
+
+if(first())
+{
+    
+    PARSED = table()
+    
+    PATTERN = "(%/%/f)%s(%w+)%s(([%s*%w+]*)%.*([%w+]*)%(-([%w+%,*%s*]*)%)-)%s*(%/%/f)"
+    
+    function setupParser(Title:string, Data:string)
+    {
+        if(PARSE_SILENT == 0)
+        {
+            print("Setting up parser for string with title: "+Title)
+        }
+        
+        PARSING = 0
+        PARSE_DATA = Data
+        PARSE_TITLE = Title
+    }
+    
+    function startParsing()
+    {
+        PARSING = 1
+        timer("PARSE", 100)
+        
+        if(PARSE_SILENT == 0)
+        {
+            print("Starting to parse string with title: "+PARSE_TITLE)
+        }
+    }
+    
+    function parseString(Title:string, Data:string)
+    {
+        setupParser(Title, Data)
+        startParsing()
+    }
+    
+    ###
+    
+    function handleParseTimer()
+    {
+        stoptimer("PARSE")
+        if(PARSING == 1)
+        {
+            local Cache = PARSE_DATA
+            local Title = PARSE_TITLE
+            
+            if(!Cache:findRE(PATTERN))
+            {
+                PARSING = 0
+                
+                timer("PARSE_COMPLETE", 750)
+                
+                if(PARSE_SILENT == 0)
+                {
+                    print(format("Parsed the input! Registered %s functions.", PARSED[PARSE_TITLE, table]:count()))
+                }
+            }
+            else
+            {
+                local Line = Cache:match(PATTERN)
+                local Prefix = Line[1, string]
+                local Action = Line[2, string]
+                
+                # Edit the string
+                local Position = Cache:findRE(PATTERN)
+                local Length = Line:concat(" "):length()
+                local Before = Cache:sub(0, Position - 1)
+                local After = Cache:sub(Position + Length)
+                
+                local Str = Before + After
+                
+                if(Prefix == "//f")
+                {
+                    if(Action == "register")
+                    {
+                        PARSED[PARSE_TITLE, table] = table()
+                        
+                        Cache = Str
+                        
+                        if(PARSE_SILENT == 0)
+                        {
+                            print("Registered file: "+PARSE_TITLE)
+                        }
+                    }
+                    elseif(Action == "func")
+                    {
+                        local Sect = Line[3, string]:explode(" ")
+                        local Title = Sect[1, string]
+                        
+                        Sect:removeString(1)
+                        local Function = Sect:concat(" ")
+                        
+                        PARSED[PARSE_TITLE, table][Title, string] = Function
+                        
+                        Cache = Str
+                        
+                        if(PARSE_SILENT == 0)
+                        {
+                            print("Registered function: " + Title + " (aka " + Function + ")")
+                        }
+                    }
+                }
+                PARSE_DATA = Cache
+                timer("PARSE", 400)
+            }
+        }
+    }
+}

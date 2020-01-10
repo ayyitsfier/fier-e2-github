@@ -1,0 +1,80 @@
+//f register //f
+
+FierJobFunc = {}
+FierJobs = {}
+
+//f func createjob FierJobFunc.CreateJob(name, clr, mdl, desc, weap, cmd, max, slry, adm, vote, lic, cat, cc, mes) //f
+function FierJobFunc.CreateJob(name, clr, mdl, desc, weap, cmd, max, slry, adm, vote, lic, cat, cc, mes)
+  if not name then return end
+
+  if not clr then clr = Color(170, 170, 170) end
+  if not mdl then mdl = "models/player/Group01/male_02.mdl" end
+  if not max then max = 0 end
+  if not slry then slry = 0 end
+  if not vote then vote = false end
+  if not lic then lic = false end
+  if not cat then cat = "Other" end
+  if not weap then weap = {} end
+
+  if not mes then mes = "You are unable to become this class." end
+  if not cc then cc = function(ply) return true end end
+
+  vote = tobool(vote)
+  lic = tobool(lic)
+
+  local id = #FierJobs + 1
+  FierJobs[id] = DarkRP.createJob(name, {
+    color = clr,
+    model = mdl,
+    description = desc,
+    weapons = weap,
+    command = cmd,
+    max = max,
+    salary = slry,
+    admin = adm,
+    vote = vote,
+    hasLicense = lic,
+    category = cat,
+    customCheck = cc,
+    CustomCheckFailMsg = mes
+  })
+
+  print("Attempted to create job with name of " .. name .. " and id of " .. id .. " RPExtraTeams[" .. FierJobs[id] .. "]")
+end
+
+//f func deletejob FierJobFunc.DeleteJob(id) //f
+function FierJobFunc.DeleteJob(id)
+  if not id then return end
+
+  id = tonumber(id)
+
+  if FierJobs[id] then
+    DarkRP.removeJob(FierJobs[id])
+    FierJobs[id] = nil
+
+    print("Deleted temporary job with id of " .. id)
+  end
+end
+
+//f func removeall FierJobFunc.DeleteJobs() //f
+function FierJobFunc.DeleteJobs()
+  for k, v in pairs(FierJobs) do
+    FierTemp.DeleteJob(k)
+    FierJobs[k] = nil
+  end
+
+  print("Deleted temporary jobs.")
+end
+
+//f func unload FierJobFunc.Unload() //f
+function FierJobFunc.Unload()
+  if FierTemp and FierJobs then
+    FierJobFunc.DeleteJobs()
+    FierJobFunc = nil
+    FierJobs = nil
+
+    print("Unloaded the Lua file.")
+  end
+end
+
+print("Test complete! File was loaded and this print is here to show it.")

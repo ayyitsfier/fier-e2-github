@@ -1,0 +1,411 @@
+@name LuaManager
+@persist LUA:table LUA_RUN:array LUA_TYPE:table
+
+if(first())
+{
+    
+    #include "filequeue"
+    #include "parser"
+
+    ###
+
+    function luaFileOpen(Path:string, Type:number)
+    {
+        if(!fileDataExists(Path) || !fileInQueue(Path))
+        {
+            openFile(Path)
+
+            switch(Type)
+            {
+                case 1,
+                    LUA["self", table]:pushString(Path)
+                    LUA_TYPE[Path, string] = "self"
+                break
+                case 2,
+                    LUA["cl", table]:pushString(Path)
+                    LUA_TYPE[Path, string] = "cl"
+                break
+                case 3,
+                    LUA["sv", table]:pushString(Path)
+                    LUA_TYPE[Path, string] = "sv"
+                break
+                case 4,
+                    LUA["sh", table]:pushString(Path)
+                    LUA_TYPE[Path, string] = "sh"
+                break
+                default, break
+            }
+        }
+    }
+
+    function luaFileRun(Path:string, Type:number)
+    {
+        luaFileOpen(Path, Type)
+        local Lookup = invert(LUA_RUN)
+        if(!Lookup:exists(Path))
+        {
+            LUA_RUN:pushString(Path)
+        }
+    }
+
+    ###
+
+    function luaSelf(String:string)
+    {
+        owner():luaRunPly(String)
+    }
+
+    function luaClient(String:string)
+    {
+        luaRunAll(String)
+    }
+
+    function luaServer(String:string)
+    {
+        luaRun(String)
+    }
+
+    function luaShared(String:string)
+    {
+        luaServer(String)
+        luaClient(String)
+    }
+
+    ###
+
+    function handleLuaLoad()
+    {
+        handleFilePostLoad()
+
+        if(LUA_RUN:count() >= 1)
+        {
+            local Path = LUA_RUN[1, string]
+            local Type = LUA_TYPE[Path, string]
+
+            if(fileDataExists(Path))
+            {
+                parseString(Path, FILE_DATA[Path, string])
+                local Lua = FILE_DATA[Path, string]
+
+                switch(Type)
+                {
+                    case "self",
+                        luaSelf(Lua)
+
+                        LUA_RUN:removeString(1)
+                    break
+                    case "cl",
+                        luaClient(Lua)
+
+                        LUA_RUN:removeString(1)
+                    break
+                    case "sv",
+                        luaServer(Lua)
+
+                        LUA_RUN:removeString(1)
+                    break
+                    case "sh",
+                        luaShared(Lua)
+
+                        LUA_RUN:removeString(1)
+                    break
+                    default, break
+                }
+            }
+        }
+    }
+
+    function luaRunStaticFunction(Path:string, Func:string)
+    {
+        if(PARSED:exists(Path))
+        {
+            if(PARSED[Path, table]:exists(Func))
+            {
+                local Type = LUA_TYPE[Path, string]
+                local Lua = PARSED[Path, table][Func, string]
+
+                switch(Type)
+                {
+                    case "self",
+                        luaSelf(Lua)
+                    break
+                    case "cl",
+                        luaClient(Lua)
+                    break
+                    case "sv",
+                        luaServer(Lua)
+                    break
+                    case "sh",
+                        luaShared(Lua)
+                    break
+                    default, break
+                }
+            }
+        }
+    }
+
+    ###
+
+    function number string:luaArgPosition(Input:string)
+    {
+        local Output = This
+
+        local Pos = Output:find(Input)
+
+        local Len = Input:length()
+        local Pre = Output:sub(Pos - 1, Pos)
+        local Post = Output:sub(Pos + Len, Pos + Len + 1)
+
+        if(Pre:find("("))
+        {
+            return 1
+        }
+        elseif(Post:find(")"))
+        {
+            return 2
+        }
+        else
+        {
+            return 3
+        }
+    }
+
+    function string string:replaceLuaArgString(Input:string, Replace:string, Index:number, Max:number)
+    {
+        local Output = This
+
+        if(Output:luaArgPosition(Input) == 1 || Output:luaArgPosition(Input) == 2)
+        {
+            Output = Output:replace(Input, "\""+Replace+"\"")
+        }
+        elseif(Output:luaArgPosition(Input) == 3)
+        {
+            Output = Output:replace(Input+", ", "\""+Replace+"\", ")
+        }
+
+        return Output
+    }
+
+    function string string:replaceLuaArgNumber(Input:string, Replace:number, Index:number, Max:number)
+    {
+        local Output = This
+
+        if(Output:luaArgPosition(Input) == 1 || Output:luaArgPosition(Input) == 2)
+        {
+            Output = Output:replace(Input, toString(Replace))
+        }
+        elseif(Output:luaArgPosition(Input) == 3)
+        {
+            Output = Output:replace(Input+", ", Replace+", ")
+        }
+
+        return Output
+    }
+
+    function string string:replaceLuaArgColor(Input:string, Replace:vector4, Index:number, Max:number)
+    {
+        local Output = This
+        local Obj = Replace:toString()
+        local Line = Obj:match("^%[(%d+)%,%s*(%d+)%,%s*(%d+)%,%s*(%d+)%s*%]")
+        local Repl = Line:concat(", ")
+
+        if(Output:luaArgPosition(Input) == 1 || Output:luaArgPosition(Input) == 2)
+        {
+            Output = Output:replace(Input, "Color("+Repl+")")
+        }
+        elseif(Output:luaArgPosition(Input) == 3)
+        {
+                Output = Output:replace(Input+", ", "Color("+Repl+"), ")
+        }
+
+        return Output
+    }
+
+    function string string:replaceLuaArgVector(Input:string, Replace:vector, Index:number, Max:number)
+    {
+        local Output = This
+        local Obj = Replace:toString()
+        local Line = Obj:match("%[(-?%d+)%,%s*(-?%d+)%,%s*(-?%d+)%]")
+        local Repl = Line:concat(" ")
+
+        if(Output:luaArgPosition(Input) == 1 || Output:luaArgPosition(Input) == 2)
+        {
+            Output = Output:replace(Input, Repl)
+        }
+        elseif(Output:luaArgPosition(Input) == 3)
+        {
+            Output = Output:replace(Input+", ", Repl+", ")
+        }
+
+        return Output
+    }
+
+    function string string:replaceLuaArgArray(Input:string, Replace:array, Index:number, Max:number)
+    {
+        local Output = This
+
+        local Repl = ""
+
+        for(I=1, Replace:count())
+        {
+            if(Replace:count() == 1)
+            {
+                Repl = "{\"" + Replace:string(I) + "\"}"
+            }
+            elseif(I == 1 && Replace:count() > 1)
+            {
+                Repl = "{\"" + Replace:string(I) + "\","
+            }
+            elseif(I < Replace:count())
+            {
+                Repl = Repl + "\"" + Replace:string(I) + "\","
+            }
+            elseif(I == Replace:count())
+            {
+                Repl = Repl + "\"" + Replace:string(I) + "\"}"
+            }
+        }
+
+        if(Replace:count() <= 0)
+        {
+            Repl = "{}"
+        }
+
+        if(Output:luaArgPosition(Input) == 1 || Output:luaArgPosition(Input) == 2)
+        {
+            Output = Output:replace(Input, Repl)
+        }
+        elseif(Output:luaArgPosition(Input) == 3)
+        {
+            Output = Output:replace(Input+", ", Repl+", ")
+        }
+
+        return Output
+    }
+
+    function string string:replaceLuaArgFunction(Input:string, Replace:string, Index:number, Max:number)
+    {
+        local Output = This
+
+        if(Output:luaArgPosition(Input) == 1 || Output:luaArgPosition(Input) == 2)
+        {
+            Output = Output:replace(Input, Replace)
+        }
+        elseif(Output:luaArgPosition(Input) == 3)
+        {
+            Output = Output:replace(Input+", ", Replace+", ")
+        }
+
+        return Output
+    }
+
+    function string string:replaceLuaArgs(Args:table)
+    {
+        local Counter = 1
+
+        local Output = This
+        foreach(K, V:string = Args)
+        {
+            if(V:find("function("))
+            {
+                Output = Output:replaceLuaArgFunction(K, V, Counter, Args:count())
+            }
+            else
+            {
+                Output = Output:replaceLuaArgString(K, V, Counter, Args:count())
+            }
+            Counter = Counter + 1
+        }
+
+        foreach(K, V:number = Args)
+        {
+            Output = Output:replaceLuaArgNumber(K, V, Counter, Args:count())
+            Counter = Counter + 1
+        }
+
+        foreach(K, V:vector4 = Args)
+        {
+            Output = Output:replaceLuaArgColor(K, V, Counter, Args:count())
+            Counter = Counter + 1
+        }
+
+        foreach(K, V:vector = Args)
+        {
+            Output = Output:replaceLuaArgVector(K, V, Counter, Args:count())
+            Counter = Counter + 1
+        }
+
+        foreach(K, V:array = Args)
+        {
+            Output = Output:replaceLuaArgArray(K, V, Counter, Args:count())
+            Counter = Counter + 1
+        }
+
+        return Output
+    }
+
+    ###
+
+    function luaRunFunction(Path:string, Func:string, Args:table)
+    {
+        if(PARSED:exists(Path))
+        {
+            if(PARSED[Path, table]:exists(Func))
+            {
+                local Type = LUA_TYPE[Path, string]
+                local Lua = PARSED[Path, table][Func, string]
+
+                Lua = Lua:replaceLuaArgs(Args)
+
+                switch(Type)
+                {
+                    case "self",
+                        luaSelf(Lua)
+                    break
+                    case "cl",
+                        luaClient(Lua)
+                    break
+                    case "sv",
+                        luaServer(Lua)
+                    break
+                    case "sh",
+                        luaShared(Lua)
+                    break
+                    default, break
+                }
+            }
+        }
+    }
+
+    ###
+
+    function handleLuaLast()
+    {
+        foreach(K, V:table = PARSED)
+        {
+            if(V:exists("unload"))
+            {
+                local Path = K
+                local Type = LUA_TYPE[Path, string]
+
+                local Lua = PARSED[Path, table]["unload", string]
+                switch(Type)
+                {
+                    case "self",
+                        luaSelf(Lua)
+                    break
+                    case "cl",
+                        luaClient(Lua)
+                    break
+                    case "sv",
+                        luaServer(Lua)
+                    break
+                    case "sh",
+                        luaShared(Lua)
+                    break
+                    default, break
+                }
+            }
+        }
+    }
+}
